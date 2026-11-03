@@ -1,6 +1,6 @@
 {
  "protocol": "ship-exchange",
- "protocol_version": "0.1",
+ "protocol_version": "0.2",
  "columns": [
   {
    "name": "state_id",
@@ -106,7 +106,39 @@
   }
  },
  "artifact_type": "TrainingProblem",
- "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+ "source_dataset_id": "source_population_v0@sha256:b635425ecf7a0f933855578c444ae2c7cd6b8f25d5cc2bd2a2de26a0205989fb",
+ "source_dataset_label": "real stage-1 8a1cc53 seeds 201-203",
+ "permitted_use": [
+  "PROTOCOL_TEST"
+ ],
+ "use_note": "PROVISIONAL states, nominal measure undefined: protocol tests only, no physics training or benchmark",
+ "production": {
+  "population": {
+   "kind": "FAIRSHIP_RUN",
+   "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+   "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+   "stage1_geometry_id": "fairship_geometry_v0@sha256:915d2df54e558c93f8a5c040d84aefa71b311671e2f9607bac3fa5244672c017",
+   "field": {
+    "field_id": "fairship_field_v0@sha256:964581fb5b4219eb3758930dc2877d228561d9c2754c70d9095d582532ed065a",
+    "maps": [
+     {
+      "name": "muonShieldField",
+      "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+      "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+     }
+    ],
+    "coverage": "map files named in the log only"
+   },
+   "launcher": {
+    "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/launch_stage1_v2.sh",
+    "sha256": "2b9bd62e336f8d3ab6f71981aa35d033181e48811f44b952a8e37f52a33b2e7a",
+    "status": "DECLARED (not provable from the output)"
+   },
+   "generator_args": "DECLARED in launcher"
+  },
+  "stage2": "per run in runs[*].stage2_config"
+ },
+ "downstream_fs_sim": "OPEN: not part of a TrainingProblem; recorded per downstream execution (e.g. DIS ingest)",
  "state_definition_id": "p2_crossing_state_v0@sha256:dd7a152ed1494f1fd328395943be1bff3e3ff05033ae4185cb964a0aa51bc21d",
  "state_definition": {
   "label": "p2_crossing_state_v0",
@@ -189,10 +221,63 @@
  "runs": [
   {
    "run_id": "s2:a67ec22f66a342ab",
-   "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+   "source_dataset_id": "source_population_v0@sha256:b635425ecf7a0f933855578c444ae2c7cd6b8f25d5cc2bd2a2de26a0205989fb",
+   "source_dataset_label": "real stage-1 8a1cc53 seeds 201-203",
+   "population_production": {
+    "kind": "FAIRSHIP_RUN",
+    "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+    "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+    "stage1_geometry_id": "fairship_geometry_v0@sha256:915d2df54e558c93f8a5c040d84aefa71b311671e2f9607bac3fa5244672c017",
+    "field": {
+     "field_id": "fairship_field_v0@sha256:964581fb5b4219eb3758930dc2877d228561d9c2754c70d9095d582532ed065a",
+     "maps": [
+      {
+       "name": "muonShieldField",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+       "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+      }
+     ],
+     "coverage": "map files named in the log only"
+    },
+    "launcher": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/launch_stage1_v2.sh",
+     "sha256": "2b9bd62e336f8d3ab6f71981aa35d033181e48811f44b952a8e37f52a33b2e7a",
+     "status": "DECLARED (not provable from the output)"
+    },
+    "generator_args": "DECLARED in launcher"
+   },
    "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
    "first_event": 0,
-   "stage2_config": "OPEN: run_simScript arguments are not recorded by the driver (see its run.log)",
+   "stage2_config": {
+    "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+    "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+    "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+    "field": {
+     "field_id": "fairship_field_v0@sha256:d1940e93988c2a05ba8a5429ccf2a9a59a7ecab922e680b092553c10c7294452",
+     "maps": [
+      {
+       "name": "MainSpecMap",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/2026_07_02_MainSpectrometerField_V21_2455.root",
+       "sha256": "5d3d71813718f41825fd5fead594d2aff2260b77c909e6e71a808ac15c535c1e"
+      },
+      {
+       "name": "muonShieldField",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+       "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+      }
+     ],
+     "coverage": "map files named in the log only"
+    },
+    "log_facts": {
+     "seed": "201",
+     "input": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_201/out/pythia8_evtgen_Geant4_201_1.0.root",
+     "geofile": "OPEN: not in log",
+     "entries_read": "36"
+    },
+    "input_matches_log": true,
+    "run_simscript_args": "OPEN: not recorded by the driver",
+    "driver": "OPEN: not recorded in the output"
+   },
    "files": {
     "stage1": {
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_201/out/pythia8_evtgen_Geant4_201_1.0.root",
@@ -206,22 +291,83 @@
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_201/geo_s201.root",
      "sha256": "8a2b0839f5fc6e30b2449baa1970ddf294e4d4c3ad333a5dd2c2e8ff1a87e779"
     },
+    "population": {
+     "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/pop_real.json",
+     "sha256": "a6185150b5d70c40a05a4dda02ef4cae476d9ae94bca7988f0964ef53eabd3ca"
+    },
     "stage2_standard": {
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_201/sim_s201.root",
      "sha256": "966d2f9060d0d200aa8432e3415808d8c41f7cab53c2ab7dfec03c8063aa9237"
     },
+    "stage2_log": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_201/run.log",
+     "sha256": "5a6a8699126a6b11bf756edd50d486c13a14766fca327bcb760a5c3942e046cb"
+    },
     "evidence_json": {
      "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/s201.json",
-     "sha256": "fd687833352fc9615d91b21e38d71f010ebc61c622fd625f209f0b3001703a1f"
+     "sha256": "2d337f96904bdbedb4d79a4230309e220f02a0cbf8732892739ec9224c22515a"
     }
    }
   },
   {
    "run_id": "s2:0a707d3a3926827c",
-   "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+   "source_dataset_id": "source_population_v0@sha256:b635425ecf7a0f933855578c444ae2c7cd6b8f25d5cc2bd2a2de26a0205989fb",
+   "source_dataset_label": "real stage-1 8a1cc53 seeds 201-203",
+   "population_production": {
+    "kind": "FAIRSHIP_RUN",
+    "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+    "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+    "stage1_geometry_id": "fairship_geometry_v0@sha256:915d2df54e558c93f8a5c040d84aefa71b311671e2f9607bac3fa5244672c017",
+    "field": {
+     "field_id": "fairship_field_v0@sha256:964581fb5b4219eb3758930dc2877d228561d9c2754c70d9095d582532ed065a",
+     "maps": [
+      {
+       "name": "muonShieldField",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+       "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+      }
+     ],
+     "coverage": "map files named in the log only"
+    },
+    "launcher": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/launch_stage1_v2.sh",
+     "sha256": "2b9bd62e336f8d3ab6f71981aa35d033181e48811f44b952a8e37f52a33b2e7a",
+     "status": "DECLARED (not provable from the output)"
+    },
+    "generator_args": "DECLARED in launcher"
+   },
    "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
    "first_event": 0,
-   "stage2_config": "OPEN: run_simScript arguments are not recorded by the driver (see its run.log)",
+   "stage2_config": {
+    "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+    "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+    "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+    "field": {
+     "field_id": "fairship_field_v0@sha256:d1940e93988c2a05ba8a5429ccf2a9a59a7ecab922e680b092553c10c7294452",
+     "maps": [
+      {
+       "name": "MainSpecMap",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/2026_07_02_MainSpectrometerField_V21_2455.root",
+       "sha256": "5d3d71813718f41825fd5fead594d2aff2260b77c909e6e71a808ac15c535c1e"
+      },
+      {
+       "name": "muonShieldField",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+       "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+      }
+     ],
+     "coverage": "map files named in the log only"
+    },
+    "log_facts": {
+     "seed": "202",
+     "input": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_202/out/pythia8_evtgen_Geant4_202_1.0.root",
+     "geofile": "OPEN: not in log",
+     "entries_read": "42"
+    },
+    "input_matches_log": true,
+    "run_simscript_args": "OPEN: not recorded by the driver",
+    "driver": "OPEN: not recorded in the output"
+   },
    "files": {
     "stage1": {
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_202/out/pythia8_evtgen_Geant4_202_1.0.root",
@@ -235,22 +381,83 @@
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_202/geo_s202.root",
      "sha256": "9deaf53a16edf709192f88b3c6f7001ea881d88a48b57b3b4b92177f54bb450d"
     },
+    "population": {
+     "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/pop_real.json",
+     "sha256": "a6185150b5d70c40a05a4dda02ef4cae476d9ae94bca7988f0964ef53eabd3ca"
+    },
     "stage2_standard": {
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_202/sim_s202.root",
      "sha256": "6b52745afcc06272699110dc6f183646c36a3572d269175c9fba4f51001542be"
     },
+    "stage2_log": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_202/run.log",
+     "sha256": "e9c9856926e04d3ac8489df9325b5a3adeb768a4809fcdf2160c5af6e01045b8"
+    },
     "evidence_json": {
      "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/s202.json",
-     "sha256": "8260f4b60657188e40b7dfa2698387102538fd7f79e9718b95ed3f79925b973a"
+     "sha256": "9b4596124cb550f1b7e0a0373f5cf1981535762af5e10e4e37b25b728a33aaad"
     }
    }
   },
   {
    "run_id": "s2:aaa0c11c37db9456",
-   "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+   "source_dataset_id": "source_population_v0@sha256:b635425ecf7a0f933855578c444ae2c7cd6b8f25d5cc2bd2a2de26a0205989fb",
+   "source_dataset_label": "real stage-1 8a1cc53 seeds 201-203",
+   "population_production": {
+    "kind": "FAIRSHIP_RUN",
+    "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+    "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+    "stage1_geometry_id": "fairship_geometry_v0@sha256:915d2df54e558c93f8a5c040d84aefa71b311671e2f9607bac3fa5244672c017",
+    "field": {
+     "field_id": "fairship_field_v0@sha256:964581fb5b4219eb3758930dc2877d228561d9c2754c70d9095d582532ed065a",
+     "maps": [
+      {
+       "name": "muonShieldField",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+       "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+      }
+     ],
+     "coverage": "map files named in the log only"
+    },
+    "launcher": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/launch_stage1_v2.sh",
+     "sha256": "2b9bd62e336f8d3ab6f71981aa35d033181e48811f44b952a8e37f52a33b2e7a",
+     "status": "DECLARED (not provable from the output)"
+    },
+    "generator_args": "DECLARED in launcher"
+   },
    "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
    "first_event": 0,
-   "stage2_config": "OPEN: run_simScript arguments are not recorded by the driver (see its run.log)",
+   "stage2_config": {
+    "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+    "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+    "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+    "field": {
+     "field_id": "fairship_field_v0@sha256:d1940e93988c2a05ba8a5429ccf2a9a59a7ecab922e680b092553c10c7294452",
+     "maps": [
+      {
+       "name": "MainSpecMap",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/2026_07_02_MainSpectrometerField_V21_2455.root",
+       "sha256": "5d3d71813718f41825fd5fead594d2aff2260b77c909e6e71a808ac15c535c1e"
+      },
+      {
+       "name": "muonShieldField",
+       "path": "/home/fabian/thesis/worktrees/FairShip-main-8a1cc53/files/TRY_2026.root",
+       "sha256": "054a3aa40af9b16e6ff5d4c7e0e37bebe9663deb4057cdce7638149b9e7206b8"
+      }
+     ],
+     "coverage": "map files named in the log only"
+    },
+    "log_facts": {
+     "seed": "203",
+     "input": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_203/out/pythia8_evtgen_Geant4_203_1.0.root",
+     "geofile": "OPEN: not in log",
+     "entries_read": "36"
+    },
+    "input_matches_log": true,
+    "run_simscript_args": "OPEN: not recorded by the driver",
+    "driver": "OPEN: not recorded in the output"
+   },
    "files": {
     "stage1": {
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_203/out/pythia8_evtgen_Geant4_203_1.0.root",
@@ -264,13 +471,21 @@
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_203/geo_s203.root",
      "sha256": "d319e0824a6cbf91c8d4664500ae145dcfcfa0d420bd0f2d68c91a5b59ff08a6"
     },
+    "population": {
+     "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/pop_real.json",
+     "sha256": "a6185150b5d70c40a05a4dda02ef4cae476d9ae94bca7988f0964ef53eabd3ca"
+    },
     "stage2_standard": {
      "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_203/sim_s203.root",
      "sha256": "283230b40b054e53b06c9f7bbd8318893d18c4ac4077a352a2fd0d4676bf3df6"
     },
+    "stage2_log": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_203/run.log",
+     "sha256": "d7ca9d02b813692e6ca61a40e1116e550d0325aa65f664e91fe5474d29783cfd"
+    },
     "evidence_json": {
      "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/s203.json",
-     "sha256": "db3890e5c92fc352646aeb03d2ff29af0952ccfc78dd3319671a7e12748b2964"
+     "sha256": "5d8e129dfc3a3c41aca441e4ae2d07f7762d0a44d032e4346f184b44bed166af"
     }
    }
   }
@@ -280,12 +495,12 @@
   "promotion of the P2 crossing state to nominal SourceState (project decision)",
   "whether post-shield P2 states suffice for the downstream endpoint B (upstream MS-DIS context)",
   "newMuonDIS MuonPath.cxx classifies volumes named *Upstream* as UBT by name, incl. vacuum scoring planes: DIS eligibility policy needed before any DIS label is used",
-  "stage-2 run configuration not recorded by the driver",
-  "geometry_id covers ShipGeo + TGeo tree, not the field map"
+  "stage-2 run_simScript arguments and driver not recorded; field identity covers log-announced map files only",
+  "geometry_id covers ShipGeo + TGeo tree; the field is identified separately (field_id)"
  ],
- "problem_id": "tp-549fb2f7c16ebeed",
+ "problem_id": "tp-c27597a3d05ec03b",
  "created_by": {
   "repo": "ship-fs-pipeline",
-  "commit": "unknown"
+  "commit": "be71ea37af84d7458b374a3d364b3df15b39acea-dirty"
  }
 }

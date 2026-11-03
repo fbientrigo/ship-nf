@@ -10,7 +10,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from ship_nf.exchange import STATE, ContractError, _sha, load_problem, propose_resample, summary
+from ship_nf.exchange import STATE, ContractError, _sha, load_problem, propose_resample, require_use, summary
 
 FIX = Path(__file__).parent / "fixtures" / "training_problem"
 SRC = Path(__file__).parents[1] / "src"
@@ -65,7 +65,7 @@ def test_resample_is_deterministic_and_atoms_are_exact(tmp_path):
     assert "weight" not in pq.read_schema(tmp_path / "a" / "proposals.parquet").names
 
 
-@pytest.mark.parametrize("v", ["0.2", "1.0"])
+@pytest.mark.parametrize("v", ["0.1", "0.3", "1.0"])
 def test_rejects_incompatible_version(tp, v):
     assert "incompatible protocol" in edit(tp, manifest=lambda m: m.update(protocol_version=v))
 
@@ -120,3 +120,25 @@ def test_rejects_incomplete(tp):
 
 def test_rejects_wrong_artifact_type(tp):
     assert "not a TrainingProblem" in edit(tp, manifest=lambda m: m.update(artifact_type="ProposalDelivery"))
+
+
+def test_permitted_use_is_protocol_test_only_and_a_obeys_it(tmp_path):
+    m, _ = load_problem(FIX)
+    assert m["permitted_use"] == ["PROTOCOL_TEST"]
+    with pytest.raises(ContractError, match="not permitted"):
+        propose_resample(FIX, tmp_path / "x", 5, 0, use="PHYSICS_TRAINING")
+    with pytest.raises(ContractError, match="not permitted"):
+        require_use(m, "PHYSICS_BENCHMARK")
+    propose_resample(FIX, tmp_path / "ok", 5, 0)
+    assert json.loads((tmp_path / "ok" / "manifest.json").read_text())["use"] == "PROTOCOL_TEST"
+
+
+@pytest.mark.parametrize("use", [["PHYSICS_TRAINING"], ["PROTOCOL_TEST", "PHYSICS_BENCHMARK"], []])
+def test_rejects_provisional_problem_that_authorizes_physics(tp, use):
+    msg = edit(tp, manifest=lambda m: m.update(permitted_use=use))
+    assert "PROTOCOL_TEST only" in msg or "unknown permitted_use" in msg
+
+
+def test_population_identity_is_a_hash_and_label_is_separate():
+    m, _ = load_problem(FIX)
+    assert m["source_dataset_id"].startswith("source_population_v0@sha256:") and m["source_dataset_label"] != m["source_dataset_id"]

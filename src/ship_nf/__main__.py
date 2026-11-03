@@ -17,9 +17,10 @@ def main(argv=None) -> int:
     p.add_argument("--out", required=True, type=Path)
     p.add_argument("--n", type=int, default=50)
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--use", default="PROTOCOL_TEST", help="must be in the problem's permitted_use")
     a = ap.parse_args(argv)
     try:
-        out = summary(*load_problem(a.problem)) if a.cmd == "inspect" else propose_resample(a.problem, a.out, a.n, a.seed)
+        out = summary(*load_problem(a.problem)) if a.cmd == "inspect" else propose_resample(a.problem, a.out, a.n, a.seed, a.use)
     except ContractError as e:
         print(json.dumps({"valid": False, "errors": e.errors}, indent=1))
         return 1

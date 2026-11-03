@@ -17,7 +17,9 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-PROTOCOL, VERSIONS = "ship-exchange", {"0.1"}
+PROTOCOL, VERSION = "ship-exchange", "0.2"
+VERSIONS = {VERSION}
+USES = ("PROTOCOL_TEST", "PHYSICS_TRAINING", "PHYSICS_BENCHMARK")
 STATE = [("x", "float64", "cm"), ("y", "float64", "cm"), ("z", "float64", "cm"), ("t", "float64", "ns"),
          ("px", "float64", "GeV/c"), ("py", "float64", "GeV/c"), ("pz", "float64", "GeV/c"), ("pdg", "int32", "-")]
 LINEAGE = ("run_id", "progenitor_id", "split_group_id", "trajectory_id")
@@ -31,7 +33,7 @@ PROPOSALS_COLUMNS = ([{"name": "proposal_id", "dtype": "string", "unit": "-", "r
                      + [{"name": n, "dtype": d, "unit": u, "role": "state"} for n, d, u in STATE])
 ARROW = {"string": pa.string(), "float64": pa.float64(), "int32": pa.int32()}
 PROBLEM_KEYS = ("protocol", "protocol_version", "artifact_type", "columns", "files", "created_by", "problem_id",
-                "source_dataset_id", "state_definition_id", "state_definition", "state_status", "admission_policy_id", "nominal_measure_id",
+                "source_dataset_id", "source_dataset_label", "permitted_use", "state_definition_id", "state_definition", "state_status", "admission_policy_id", "nominal_measure_id",
                 "weights", "runs", "open_questions")
 
 
@@ -99,7 +101,11 @@ def load_problem(dirpath: Path) -> tuple[dict, list[dict]]:
     if any(r["provenance_status"] != "RESOLVED" for r in rows):
         errors.append("non-RESOLVED provenance")
     if m["state_status"] != "PROVISIONAL" or any(r["admission_status"] != m["state_status"] for r in rows):
-        errors.append("state_status/admission_status must be PROVISIONAL in 0.1")
+        errors.append("state_status/admission_status must be PROVISIONAL in 0.2")
+    if not m["permitted_use"] or not set(m["permitted_use"]) <= set(USES):
+        errors.append(f"unknown permitted_use {m['permitted_use']}")
+    elif (m["state_status"] == "PROVISIONAL" or m["nominal_measure_id"] is None) and m["permitted_use"] != ["PROTOCOL_TEST"]:
+        errors.append("PROVISIONAL states / null nominal measure permit PROTOCOL_TEST only")
     for c in (c for c in STATES_COLUMNS if c["role"] == "weight"):
         w = m["weights"].get(c["name"]) or {}
         if not w.get("semantics_id"):
@@ -114,6 +120,7 @@ def load_problem(dirpath: Path) -> tuple[dict, list[dict]]:
 def summary(m: dict, rows: list[dict]) -> dict:
     """What A must know before fitting anything: how many rows are actually independent, and what the weight is not."""
     return {"problem_id": m["problem_id"], "rows": len(rows), "state_status": m["state_status"],
+            "permitted_use": m["permitted_use"], "source_dataset_label": m["source_dataset_label"],
             **{"n_" + k.removesuffix("_id"): len({r[k] for r in rows}) for k in LINEAGE},
             "weight_semantics": {k: v["semantics_id"] for k, v in m["weights"].items()},
             "nominal_measure_id": m["nominal_measure_id"], "open_questions": len(m["open_questions"])}
@@ -124,17 +131,24 @@ def _commit() -> str:
     return r.stdout.strip() or "unknown"
 
 
-def propose_resample(problem_dir: Path, out: Path, n: int, seed: int) -> dict:
+def require_use(m: dict, use: str) -> None:
+    """A refuses any use the problem does not permit (0.2: PROVISIONAL states permit PROTOCOL_TEST only)."""
+    if use not in m["permitted_use"]:
+        raise ContractError([f"use {use!r} not permitted by problem {m['problem_id']} ({m['permitted_use']})"])
+
+
+def propose_resample(problem_dir: Path, out: Path, n: int, seed: int, use: str = "PROTOCOL_TEST") -> dict:
     """Uniform resample with replacement of training rows (atoms copied exactly). Not P0: the stored weight is OPEN."""
     m, rows = load_problem(problem_dir)
+    require_use(m, use)
     rng = random.Random(seed)
     picks = [rng.randrange(len(rows)) for _ in range(n)]
     props = [{"proposal_id": f"rs:{seed}:{i}", "parent_state_id": rows[k]["state_id"], **{c: rows[k][c] for c, _, _ in STATE}}
              for i, k in enumerate(picks)]
     out.mkdir(parents=True, exist_ok=True)
     pq.write_table(pa.Table.from_pylist(props, schema=_schema(PROPOSALS_COLUMNS)), out / "proposals.parquet")
-    manifest = {"protocol": PROTOCOL, "protocol_version": "0.1", "artifact_type": "ProposalDelivery",
-                "training_problem_id": m["problem_id"], "state_definition_id": m["state_definition_id"],
+    manifest = {"protocol": PROTOCOL, "protocol_version": VERSION, "artifact_type": "ProposalDelivery",
+                "training_problem_id": m["problem_id"], "state_definition_id": m["state_definition_id"], "use": use,
                 "proposal_kind": "EMPIRICAL_RESAMPLE", "base_measure": "UNIFORM_OVER_TRAINING_ROWS", "density": None,
                 "generator": {"method": "uniform resample with replacement (stdlib random.Random)", "seed": seed, "n": n},
                 "columns": PROPOSALS_COLUMNS,
