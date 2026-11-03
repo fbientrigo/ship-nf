@@ -1,0 +1,291 @@
+{
+ "protocol": "ship-exchange",
+ "protocol_version": "0.1",
+ "columns": [
+  {
+   "name": "state_id",
+   "dtype": "string",
+   "unit": "-",
+   "role": "id"
+  },
+  {
+   "name": "x",
+   "dtype": "float64",
+   "unit": "cm",
+   "role": "state"
+  },
+  {
+   "name": "y",
+   "dtype": "float64",
+   "unit": "cm",
+   "role": "state"
+  },
+  {
+   "name": "z",
+   "dtype": "float64",
+   "unit": "cm",
+   "role": "state"
+  },
+  {
+   "name": "t",
+   "dtype": "float64",
+   "unit": "ns",
+   "role": "state"
+  },
+  {
+   "name": "px",
+   "dtype": "float64",
+   "unit": "GeV/c",
+   "role": "state"
+  },
+  {
+   "name": "py",
+   "dtype": "float64",
+   "unit": "GeV/c",
+   "role": "state"
+  },
+  {
+   "name": "pz",
+   "dtype": "float64",
+   "unit": "GeV/c",
+   "role": "state"
+  },
+  {
+   "name": "pdg",
+   "dtype": "int32",
+   "unit": "-",
+   "role": "state"
+  },
+  {
+   "name": "stored_mctrack_weight",
+   "dtype": "float64",
+   "unit": "1",
+   "role": "weight"
+  },
+  {
+   "name": "run_id",
+   "dtype": "string",
+   "unit": "-",
+   "role": "lineage"
+  },
+  {
+   "name": "progenitor_id",
+   "dtype": "string",
+   "unit": "-",
+   "role": "lineage"
+  },
+  {
+   "name": "split_group_id",
+   "dtype": "string",
+   "unit": "-",
+   "role": "lineage"
+  },
+  {
+   "name": "trajectory_id",
+   "dtype": "string",
+   "unit": "-",
+   "role": "lineage"
+  },
+  {
+   "name": "provenance_status",
+   "dtype": "string",
+   "unit": "-",
+   "role": "status"
+  },
+  {
+   "name": "admission_status",
+   "dtype": "string",
+   "unit": "-",
+   "role": "status"
+  }
+ ],
+ "files": {
+  "states.parquet": {
+   "sha256": "64f67ddf79906bb27f9747b0fccc77f27674d5b0d086a9cd13f45e610f73f87f",
+   "rows": 19
+  }
+ },
+ "artifact_type": "TrainingProblem",
+ "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+ "state_definition_id": "p2_crossing_state_v0@sha256:dd7a152ed1494f1fd328395943be1bff3e3ff05033ae4185cb964a0aa51bc21d",
+ "state_definition": {
+  "label": "p2_crossing_state_v0",
+  "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+  "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+  "plane": {
+   "node": "UpstreamTaggerScoringPlane2_2",
+   "branch": "UpstreamTaggerScoringPoint",
+   "det_id": 2,
+   "center_cm": [
+    0.0,
+    91.8,
+    3228.0
+   ],
+   "half_cm": [
+    456.6,
+    428.2,
+    0.05
+   ]
+  },
+  "units": {
+   "x": "cm",
+   "y": "cm",
+   "z": "cm",
+   "t": "ns",
+   "px": "GeV/c",
+   "py": "GeV/c",
+   "pz": "GeV/c"
+  },
+  "frame": "FairShip global cave",
+  "point": "end of first step inside the plane (ScoringPlane.h IsTrackEntering)",
+  "crossing": "FIRST_FORWARD: pz > 0 and first crossing of its track in the entry"
+ },
+ "state_status": "PROVISIONAL",
+ "admission_policy_id": "p2_admission_v0@sha256:29dd49b7e1c10546e991706a2456b3ef8d3ab41a3937e00ad67155d82502f8a5",
+ "admission_policy": {
+  "label": "p2_admission_v0",
+  "rules": [
+   "crossing_class == FIRST_FORWARD",
+   "provenance status == RESOLVED",
+   "weight_agrees is True"
+  ],
+  "outcome_if_all_hold": "PROVISIONAL (candidate SourceState; nominal promotion is a pending project decision)",
+  "outcome_otherwise": "NOT_ADMITTED with the first failing rule as reason; the row is kept"
+ },
+ "nominal_measure_id": null,
+ "weights": {
+  "stored_mctrack_weight": {
+   "semantics_id": "OPEN:stored-mctrack-weight-v0",
+   "usable_as_nominal_measure": false,
+   "description": "stored MCTrack weight of the crossing track (0.1 = 1/K split clone, 1 unsplit); physical normalisation OPEN"
+  }
+ },
+ "lineage": "rows sharing progenitor_id / split_group_id are dependent split clones, not independent draws",
+ "geometry": {
+  "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+  "shipgeo_sha256": "32630ac7c3387eab37e31af60448c3991a4a529e37129a2b63c5cec02c3c3119",
+  "tgeo_tree_sha256": "d65fb89037c1d7fa9a66186e5167f54c2f12dde74a7522753fe0edd1a1392ee0",
+  "tgeo_nodes": 32725,
+  "fairship": "8a1cc53ecdd55b99cceec1a35346ee6b8803a250",
+  "fairship_library": "26.10 (8a1cc53ecdd55b99cceec1a35346ee6b8803a250)",
+  "p2": {
+   "node": "UpstreamTaggerScoringPlane2_2",
+   "center": [
+    0.0,
+    91.8,
+    3228.0
+   ],
+   "half": [
+    456.6,
+    428.2,
+    0.05
+   ],
+   "material": "vacuum",
+   "density_g_cm3": 1e-16
+  },
+  "shield_end_cm": 3218.0,
+  "p2_center_minus_shield_end_cm": 10.0
+ },
+ "runs": [
+  {
+   "run_id": "s2:a67ec22f66a342ab",
+   "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+   "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+   "first_event": 0,
+   "stage2_config": "OPEN: run_simScript arguments are not recorded by the driver (see its run.log)",
+   "files": {
+    "stage1": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_201/out/pythia8_evtgen_Geant4_201_1.0.root",
+     "sha256": "ac14f8f51c87d3166382f4f455aa205e06446cc02ee854dcb9f8eb16e7e4f7a5"
+    },
+    "stage2_unfiltered": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_201/sim_s201.unfiltered.root",
+     "sha256": "a67ec22f66a342ab25e6bc4261bd2b434f3def48f81713b74a5bcf80c5738d40"
+    },
+    "geofile": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_201/geo_s201.root",
+     "sha256": "8a2b0839f5fc6e30b2449baa1970ddf294e4d4c3ad333a5dd2c2e8ff1a87e779"
+    },
+    "stage2_standard": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_201/sim_s201.root",
+     "sha256": "966d2f9060d0d200aa8432e3415808d8c41f7cab53c2ab7dfec03c8063aa9237"
+    },
+    "evidence_json": {
+     "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/s201.json",
+     "sha256": "fd687833352fc9615d91b21e38d71f010ebc61c622fd625f209f0b3001703a1f"
+    }
+   }
+  },
+  {
+   "run_id": "s2:0a707d3a3926827c",
+   "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+   "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+   "first_event": 0,
+   "stage2_config": "OPEN: run_simScript arguments are not recorded by the driver (see its run.log)",
+   "files": {
+    "stage1": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_202/out/pythia8_evtgen_Geant4_202_1.0.root",
+     "sha256": "8be01cb4198513374a4180f506abb3b4b60dadb500f5feb98713fa21c0b0a006"
+    },
+    "stage2_unfiltered": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_202/sim_s202.unfiltered.root",
+     "sha256": "0a707d3a3926827c8fc4ffce64d25d4c677ee1e56436d054c61bddc2c57b50c8"
+    },
+    "geofile": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_202/geo_s202.root",
+     "sha256": "9deaf53a16edf709192f88b3c6f7001ea881d88a48b57b3b4b92177f54bb450d"
+    },
+    "stage2_standard": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_202/sim_s202.root",
+     "sha256": "6b52745afcc06272699110dc6f183646c36a3572d269175c9fba4f51001542be"
+    },
+    "evidence_json": {
+     "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/s202.json",
+     "sha256": "8260f4b60657188e40b7dfa2698387102538fd7f79e9718b95ed3f79925b973a"
+    }
+   }
+  },
+  {
+   "run_id": "s2:aaa0c11c37db9456",
+   "source_dataset_id": "real:stage1-8a1cc53-seeds201-203",
+   "geometry_id": "fairship_geometry_v0@sha256:3df7a10b12aaad0164926b648abc46152c805cfa1c7f95bb60c610bf2f827e31",
+   "first_event": 0,
+   "stage2_config": "OPEN: run_simScript arguments are not recorded by the driver (see its run.log)",
+   "files": {
+    "stage1": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/prod_stage1_8a1cc53/seed_203/out/pythia8_evtgen_Geant4_203_1.0.root",
+     "sha256": "50b71e9d6dd3bc3da2b682108679d0d27bd401d4e0886a6505f999c8b84e759e"
+    },
+    "stage2_unfiltered": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_203/sim_s203.unfiltered.root",
+     "sha256": "aaa0c11c37db9456c65631abc8b9132c4c4c5699749107b0754bf632c297e23c"
+    },
+    "geofile": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_203/geo_s203.root",
+     "sha256": "d319e0824a6cbf91c8d4664500ae145dcfcfa0d420bd0f2d68c91a5b59ff08a6"
+    },
+    "stage2_standard": {
+     "path": "/home/fabian/thesis/scratch/gen-from-scratch-v0/p2_real_nofollow/seed_203/sim_s203.root",
+     "sha256": "283230b40b054e53b06c9f7bbd8318893d18c4ac4077a352a2fd0d4676bf3df6"
+    },
+    "evidence_json": {
+     "path": "/home/fabian/thesis/greenfield/ship-fs-pipeline/tests/fixtures/s203.json",
+     "sha256": "db3890e5c92fc352646aeb03d2ff29af0952ccfc78dd3319671a7e12748b2964"
+    }
+   }
+  }
+ ],
+ "open_questions": [
+  "physical meaning of the stored MCTrack weight (DEC-WEIGHT-02); nominal measure undefined",
+  "promotion of the P2 crossing state to nominal SourceState (project decision)",
+  "whether post-shield P2 states suffice for the downstream endpoint B (upstream MS-DIS context)",
+  "newMuonDIS MuonPath.cxx classifies volumes named *Upstream* as UBT by name, incl. vacuum scoring planes: DIS eligibility policy needed before any DIS label is used",
+  "stage-2 run configuration not recorded by the driver",
+  "geometry_id covers ShipGeo + TGeo tree, not the field map"
+ ],
+ "problem_id": "tp-549fb2f7c16ebeed",
+ "created_by": {
+  "repo": "ship-fs-pipeline",
+  "commit": "unknown"
+ }
+}

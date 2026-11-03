@@ -1,0 +1,18 @@
+[project]
+name = "ship-nf"
+version = "0.0.1"
+description = "Repo A: normalizing-flow side. No FairShip, no ROOT. Talks to repo B only through ship-exchange artifacts."
+requires-python = ">=3.11"
+dependencies = ["pyarrow>=15"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
