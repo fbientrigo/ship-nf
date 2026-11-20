@@ -6,8 +6,9 @@ seconds on a few hundred rows.
 
 Notes
 -----
-Features are standardised with the training mean and standard deviation; ``log_prob`` is in the standardised space
-(the constant Jacobian of the standardisation is left out, so values compare only within one fitted flow).
+Features are standardised with the training mean and standard deviation inside the flow. ``log_prob`` includes the
+Jacobian of that standardisation, so it is a density in the original feature space and two flows fitted on
+different data can be compared point by point (needed for NLL across splits and for importance weights q0/qg).
 """
 
 from __future__ import annotations
@@ -63,7 +64,7 @@ class Flow(nn.Module):
         for layer in self.layers:
             z, ld = layer(z)
             logdet = logdet + ld
-        return -0.5 * (z ** 2).sum(-1) - 0.5 * z.shape[1] * np.log(2 * np.pi) + logdet
+        return -0.5 * (z ** 2).sum(-1) - 0.5 * z.shape[1] * np.log(2 * np.pi) + logdet - torch.log(self.std).sum()
 
     @torch.no_grad()
     def sample(self, n: int, seed: int) -> np.ndarray:

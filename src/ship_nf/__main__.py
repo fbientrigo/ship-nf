@@ -1,4 +1,4 @@
-"""``python -m ship_nf {inspect,propose,propose-nf}``."""
+"""``python -m ship_nf {inspect,propose,propose-nf,extrapolation}``."""
 
 import argparse
 import json
@@ -26,9 +26,17 @@ def main(argv=None) -> int:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--alpha", type=float, default=2.0)
     p.add_argument("--delta", type=float, default=0.1)
+    p = sub.add_parser("extrapolation", help="systems 1-2: A/B of box vs radial sigma splits, NF error per split and vs d(x)")
+    p.add_argument("npz", type=Path, help="afterMS sample, columns [px, py, pz, x, y, z, id, w]")
+    p.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
     try:
-        if a.cmd == "propose-nf":
+        if a.cmd == "extrapolation":
+            from ship_nf.extrapolation import ab_test
+            res = ab_test(a.npz)
+            a.out.write_text(json.dumps(res, indent=1))
+            out = {"out": str(a.out), "runs": len(res["runs"]), "data": res["data"]}
+        elif a.cmd == "propose-nf":
             from ship_nf.loop import propose  # torch only when needed
             out = propose(a.problem, a.history, a.out, a.m, a.seed, a.alpha, a.delta)
         else:
