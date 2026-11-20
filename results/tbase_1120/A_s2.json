@@ -1,0 +1,70 @@
+{
+ "design": "A",
+ "base": "normal",
+ "seed": 2,
+ "split_seed": 1,
+ "epochs": 400,
+ "checkpoint_rule": "last of 400 full-batch Adam steps (lr 3e-3), no early stopping",
+ "device": "cuda",
+ "train_seconds": 3.992870627000002,
+ "final_train_nll": -4.661028861999512,
+ "val_interp_nll": {
+  "median": -5.702878952026367,
+  "mean": -4.120114326477051,
+  "n": 1756,
+  "finite": 1756
+ },
+ "generated": {
+  "total": 200000,
+  "sample_seed": 1002,
+  "nonfinite_features": 0,
+  "nonfinite_px": 0,
+  "valid": 200000
+ },
+ "tails": {
+  "val_left": {
+   "gen": 28,
+   "gen_total": 200000,
+   "ref": 29,
+   "ref_total": 19787,
+   "R": 0.09552344827586207
+  },
+  "val_right": {
+   "gen": 641,
+   "gen_total": 200000,
+   "ref": 609,
+   "ref_total": 19787,
+   "R": 0.10413355500821019
+  },
+  "val_both": {
+   "gen": 669,
+   "gen_total": 200000,
+   "ref": 638,
+   "ref_total": 19787,
+   "R": 0.10374218652037619
+  },
+  "test_left": {
+   "gen": 17,
+   "gen_total": 200000,
+   "ref": 38,
+   "ref_total": 19787,
+   "R": 0.04426039473684211
+  },
+  "test_right": {
+   "gen": 89,
+   "gen_total": 200000,
+   "ref": 1549,
+   "ref_total": 19787,
+   "R": 0.0056844512588766945
+  },
+  "test_both": {
+   "gen": 106,
+   "gen_total": 200000,
+   "ref": 1587,
+   "ref_total": 19787,
+   "R": 0.006608134845620667
+  }
+ },
+ "checkpoint": "A_s2.pt",
+ "checkpoint_sha256": "23e84a78324dbb06d5cc87b455ffe080675904ed0b6bc8c96a282b246b590277"
+}

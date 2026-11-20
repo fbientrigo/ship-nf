@@ -1,0 +1,7 @@
+a45fc522fb2d334991305eb41bf4b82f2b60c52a9b3347217901da9f7bc46f16  data/muonsFullMC_afterMS_sample.npz
+tee: out/run.log: No such file or directory
+{"gpu": "Tesla T4", "torch": "2.14.1+cu130", "cuda": "13.0", "forward_backward": {"param_device": "cuda:0", "grad_device": "cuda:0", "batch_device": "cuda:0", "grad_finite": true}, "split_rows": {"train": 15806, "val_interp": 1756, "val": 638, "test": 1587}}
+A 1 9.7s nll -5.705 {'val_left': 0.10916965517241381, 'val_right': 0.24043316912972088, 'val_both': 0.2344666457680251, 'test_left': 0.10674565789473683, 'test_right': 0.007600558424790188, 'test_both': 0.009974543163201009}
+B 1 3.4s nll -5.69 {'val_left': 0.11258120689655172, 'val_right': 0.20566783251231527, 'val_both': 0.2014366222570533, 'test_left': 0.11195276315789474, 'test_right': 0.023248766946417043, 'test_both': 0.025372744171392562}
+A 2 4.0s nll -5.703 {'val_left': 0.09552344827586207, 'val_right': 0.10413355500821019, 'val_both': 0.10374218652037619, 'test_left': 0.04426039473684211, 'test_right': 0.0056844512588766945, 'test_both': 0.006608134845620667}
+B 2 3.3s nll -5.578 {'val_left': 0.4025631034482759, 'val_right': 0.17886278325123153, 'val_both': 0.18903097962382445, 'test_left': 0.22390552631578947, 'test_right': 0.011943734667527437, 'test_both': 0.01701906427221172}
