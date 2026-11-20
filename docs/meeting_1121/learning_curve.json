@@ -1,0 +1,144 @@
+{
+ "data": {
+  "path": "/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz",
+  "sha256": "a45fc522fb2d334991305eb41bf4b82f2b60c52a9b3347217901da9f7bc46f16",
+  "pdg": 13,
+  "rows": 19787
+ },
+ "rule": {
+  "variable": "px of afterMS muons, pdg 13",
+  "z": "|px - median| / (1.4826 MAD), all rows of the charge",
+  "median": 1.4625146540593712,
+  "sigma": 1.1460947902969942,
+  "train": "|z| <= 2.0 minus val_interp",
+  "val_interp": "random 10% of |z| <= 2.0",
+  "val": "2.0 < |z| <= 2.5",
+  "test": "|z| > 2.5",
+  "trained_on": "x, y, tx, ty, log p (ship_nf.loop.features)"
+ },
+ "epochs": 400,
+ "ess_note": "equal weights: ESS = N",
+ "rows": [
+  {
+   "seed": 1,
+   "n_train_distinct": 250,
+   "ess": 250.0,
+   "n_gen": 50000,
+   "val_gen": 350,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.21709874608150473,
+   "val_interp_nll_median": -3.8132283687591553
+  },
+  {
+   "seed": 1,
+   "n_train_distinct": 1000,
+   "ess": 1000.0,
+   "n_gen": 50000,
+   "val_gen": 572,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.3548013793103449,
+   "val_interp_nll_median": -5.391050338745117
+  },
+  {
+   "seed": 1,
+   "n_train_distinct": 4000,
+   "ess": 4000.0,
+   "n_gen": 50000,
+   "val_gen": 233,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.144525736677116,
+   "val_interp_nll_median": -5.6944899559021
+  },
+  {
+   "seed": 1,
+   "n_train_distinct": 13000,
+   "ess": 13000.0,
+   "n_gen": 50000,
+   "val_gen": 367,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.22764354231974923,
+   "val_interp_nll_median": -5.7134881019592285
+  },
+  {
+   "seed": 2,
+   "n_train_distinct": 250,
+   "ess": 250.0,
+   "n_gen": 50000,
+   "val_gen": 458,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.2840892163009405,
+   "val_interp_nll_median": -4.588169097900391
+  },
+  {
+   "seed": 2,
+   "n_train_distinct": 1000,
+   "ess": 1000.0,
+   "n_gen": 50000,
+   "val_gen": 192,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.11909416927899688,
+   "val_interp_nll_median": -5.433864593505859
+  },
+  {
+   "seed": 2,
+   "n_train_distinct": 4000,
+   "ess": 4000.0,
+   "n_gen": 50000,
+   "val_gen": 289,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.17926153605015677,
+   "val_interp_nll_median": -5.650144577026367
+  },
+  {
+   "seed": 2,
+   "n_train_distinct": 13000,
+   "ess": 13000.0,
+   "n_gen": 50000,
+   "val_gen": 249,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.15445025078369906,
+   "val_interp_nll_median": -5.671138286590576
+  },
+  {
+   "seed": 3,
+   "n_train_distinct": 250,
+   "ess": 250.0,
+   "n_gen": 50000,
+   "val_gen": 597,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.3703084326018809,
+   "val_interp_nll_median": -4.8796467781066895
+  },
+  {
+   "seed": 3,
+   "n_train_distinct": 1000,
+   "ess": 1000.0,
+   "n_gen": 50000,
+   "val_gen": 135,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.08373808777429469,
+   "val_interp_nll_median": -5.461923122406006
+  },
+  {
+   "seed": 3,
+   "n_train_distinct": 4000,
+   "ess": 4000.0,
+   "n_gen": 50000,
+   "val_gen": 233,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.144525736677116,
+   "val_interp_nll_median": -5.625870704650879
+  },
+  {
+   "seed": 3,
+   "n_train_distinct": 13000,
+   "ess": 13000.0,
+   "n_gen": 50000,
+   "val_gen": 216,
+   "val_ref_frac": 0.032243392126143425,
+   "val_mass_ratio": 0.1339809404388715,
+   "val_interp_nll_median": -5.733241558074951
+  }
+ ],
+ "commit": "054bf1e"
+}

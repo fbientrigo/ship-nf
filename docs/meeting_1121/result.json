@@ -1,0 +1,172 @@
+{
+ "data": {
+  "path": "/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz",
+  "sha256": "a45fc522fb2d334991305eb41bf4b82f2b60c52a9b3347217901da9f7bc46f16",
+  "pdg": 13,
+  "rows": 19787
+ },
+ "rule": {
+  "variable": "px of afterMS muons, pdg 13",
+  "z": "|px - median| / (1.4826 MAD), all rows of the charge",
+  "median": 1.4625146540593712,
+  "sigma": 1.1460947902969942,
+  "train": "|z| <= 2.0 minus val_interp",
+  "val_interp": "random 10% of |z| <= 2.0",
+  "val": "2.0 < |z| <= 2.5",
+  "test": "|z| > 2.5",
+  "trained_on": "x, y, tx, ty, log p (ship_nf.loop.features)"
+ },
+ "split_rows": {
+  "train": 15806,
+  "val_interp": 1756,
+  "val": 638,
+  "test": 1587
+ },
+ "model": {
+  "flow": "ship_nf.flow RealNVP, 6 couplings, 64 hidden",
+  "epochs": 400,
+  "seed": 1,
+  "final_train_nll": -4.622395992279053,
+  "checkpoint": "/home/fabian/thesis/scratch/demos_1120/demo34/flow.pt",
+  "checkpoint_sha256": "173985458600eef17471858e8f85917c0e9e04f52558981b30362a4ea4cd6137"
+ },
+ "transform": {
+  "fit_on": "train rows only",
+  "mean": [
+   2.380015700226828,
+   0.006687451095171272,
+   0.11370980928915662,
+   0.00028856244647851846,
+   2.5468337882385597
+  ],
+  "std": [
+   0.7932236817027223,
+   0.6479367196793746,
+   0.14033407502879558,
+   0.056338418111354885,
+   0.899237604057097
+  ],
+  "knn": 5
+ },
+ "generated": {
+  "total_before_filter": 50000,
+  "finite": 50000,
+  "in_test_region": 41
+ },
+ "region_request": {
+  "call": "sample_region(model, lambda g: z_of(g, d) > 2.5, n_req=1000, seed=2001)",
+  "requested": 1000,
+  "generated": 200000,
+  "accepted": 121,
+  "max_batches": 10,
+  "batch": 20000
+ },
+ "bands": {
+  "d_train": [
+   {
+    "lo": 0.0,
+    "hi": 0.27049563456290576,
+    "ref": 318,
+    "ref_total": 19787,
+    "gen": 7,
+    "gen_total": 50000,
+    "ratio": 0.00871125786163522,
+    "ref_nll_median": 4.3006744384765625
+   },
+   {
+    "lo": 0.27049563456290576,
+    "hi": 0.4013976696298318,
+    "ref": 317,
+    "ref_total": 19787,
+    "gen": 1,
+    "gen_total": 50000,
+    "ratio": 0.0012483911671924291,
+    "ref_nll_median": 13.06594467163086
+   },
+   {
+    "lo": 0.4013976696298318,
+    "hi": 0.5934924434824814,
+    "ref": 317,
+    "ref_total": 19787,
+    "gen": 2,
+    "gen_total": 50000,
+    "ratio": 0.0024967823343848583,
+    "ref_nll_median": 25.237136840820312
+   },
+   {
+    "lo": 0.5934924434824814,
+    "hi": 0.9170684496860391,
+    "ref": 317,
+    "ref_total": 19787,
+    "gen": 5,
+    "gen_total": 50000,
+    "ratio": 0.006241955835962145,
+    "ref_nll_median": 42.54717254638672
+   },
+   {
+    "lo": 0.9170684496860391,
+    "hi": Infinity,
+    "ref": 318,
+    "ref_total": 19787,
+    "gen": 26,
+    "gen_total": 50000,
+    "ratio": 0.032356100628930816,
+    "ref_nll_median": 61.91997528076172
+   }
+  ],
+  "d_val": [
+   {
+    "lo": 0.0,
+    "hi": 0.16061343481328294,
+    "ref": 318,
+    "ref_total": 19787,
+    "gen": 2,
+    "gen_total": 50000,
+    "ratio": 0.0024889308176100633,
+    "ref_nll_median": 4.488678932189941
+   },
+   {
+    "lo": 0.16061343481328294,
+    "hi": 0.2595943805179276,
+    "ref": 317,
+    "ref_total": 19787,
+    "gen": 4,
+    "gen_total": 50000,
+    "ratio": 0.0049935646687697165,
+    "ref_nll_median": 13.115856170654297
+   },
+   {
+    "lo": 0.2595943805179276,
+    "hi": 0.4262967772919902,
+    "ref": 317,
+    "ref_total": 19787,
+    "gen": 2,
+    "gen_total": 50000,
+    "ratio": 0.0024967823343848583,
+    "ref_nll_median": 25.016225814819336
+   },
+   {
+    "lo": 0.4262967772919902,
+    "hi": 0.7410097776002176,
+    "ref": 317,
+    "ref_total": 19787,
+    "gen": 4,
+    "gen_total": 50000,
+    "ratio": 0.0049935646687697165,
+    "ref_nll_median": 42.170448303222656
+   },
+   {
+    "lo": 0.7410097776002176,
+    "hi": Infinity,
+    "ref": 318,
+    "ref_total": 19787,
+    "gen": 29,
+    "gen_total": 50000,
+    "ratio": 0.03608949685534591,
+    "ref_nll_median": 62.23086929321289
+   }
+  ]
+ },
+ "commit": "054bf1e",
+ "geometry": "none: afterMS surface, not P2 (#43)"
+}
