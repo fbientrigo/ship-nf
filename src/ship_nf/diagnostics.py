@@ -63,7 +63,8 @@ def _gpd_fit(x: np.ndarray) -> float:
 def psis_khat(log_w: np.ndarray) -> float:
     """Pareto ``k`` of the upper tail of importance weights given as ``log_w`` (Vehtari et al. 2024).
 
-    Uses the largest ``min(S / 5, 3 sqrt(S))`` weights. Returns ``inf`` when the tail is degenerate.
+    Uses the largest ``min(S / 5, 3 sqrt(S))`` weights. Returns ``inf`` with fewer than 25 weights (too few to fit a
+    tail) and ``nan`` when the largest weights are all equal (no tail to fit, e.g. proposal identical to target).
     """
     lw = np.sort(np.asarray(log_w, dtype=float))
     s = len(lw)
@@ -73,7 +74,7 @@ def psis_khat(log_w: np.ndarray) -> float:
     cut = lw[-m - 1]
     x = np.exp(lw[-m:] - lw[-1]) - np.exp(cut - lw[-1])  # scaled exceedances, same shape k
     x = x[x > 0]
-    return _gpd_fit(np.sort(x)) if len(x) >= 5 else float("inf")
+    return _gpd_fit(np.sort(x)) if len(x) >= 5 else float("nan")
 
 
 def coverage(real: np.ndarray, fake: np.ndarray, k: int = 5) -> float:

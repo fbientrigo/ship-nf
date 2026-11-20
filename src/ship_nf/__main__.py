@@ -1,4 +1,4 @@
-"""``python -m ship_nf {inspect,propose,propose-nf,extrapolation}``."""
+"""``python -m ship_nf {inspect,propose,propose-nf,extrapolation,selfconsume}``."""
 
 import argparse
 import json
@@ -29,9 +29,17 @@ def main(argv=None) -> int:
     p = sub.add_parser("extrapolation", help="systems 1-2: A/B of box vs radial sigma splits, NF error per split and vs d(x)")
     p.add_argument("npz", type=Path, help="afterMS sample, columns [px, py, pz, x, y, z, id, w]")
     p.add_argument("--out", required=True, type=Path)
+    p = sub.add_parser("selfconsume", help="system 3: flow retrained on own samples vs anchored on real rows")
+    p.add_argument("npz", type=Path)
+    p.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
     try:
-        if a.cmd == "extrapolation":
+        if a.cmd == "selfconsume":
+            from ship_nf.selfconsume import study as sc_study
+            res = sc_study(a.npz)
+            a.out.write_text(json.dumps(res, indent=1))
+            out = {"out": str(a.out), "runs": len(res["runs"]), "data": res["data"]}
+        elif a.cmd == "extrapolation":
             from ship_nf.extrapolation import ab_test
             res = ab_test(a.npz)
             a.out.write_text(json.dumps(res, indent=1))
