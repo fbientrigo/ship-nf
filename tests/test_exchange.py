@@ -65,7 +65,7 @@ def test_resample_is_deterministic_and_atoms_are_exact(tmp_path):
     assert "weight" not in pq.read_schema(tmp_path / "a" / "proposals.parquet").names
 
 
-@pytest.mark.parametrize("v", ["0.1", "0.3", "1.0"])
+@pytest.mark.parametrize("v", ["0.1", "0.4", "1.0"])
 def test_rejects_incompatible_version(tp, v):
     assert "incompatible protocol" in edit(tp, manifest=lambda m: m.update(protocol_version=v))
 

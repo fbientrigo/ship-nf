@@ -1,8 +1,9 @@
-"""A side of ship-exchange 0.1 (``contract/ship_exchange_v0.md``): read a TrainingProblem, write a ProposalDelivery.
+"""A side of ship-exchange 0.3 (``contract/ship_exchange_v0.md``): read a TrainingProblem, write a ProposalDelivery,
+read an EvaluationReport.
 
 Written independently of repo B's code (no shared module); the B interoperability test catches drift.
-The only delivery A can make in 0.1 is ``EMPIRICAL_RESAMPLE``: a discrete resample of training rows, declared as such.
-It is a protocol exercise and a baseline, not a model: no density, no claim about ``P0`` or ``PU``.
+Deliveries: ``EMPIRICAL_RESAMPLE`` (a discrete resample of training rows, the protocol baseline) and, from 0.3,
+``MODEL_SAMPLE`` (new states drawn from a fitted model). Neither carries a density B may use, nor a claim about ``P0``.
 """
 
 from __future__ import annotations
@@ -17,8 +18,8 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-PROTOCOL, VERSION = "ship-exchange", "0.2"
-VERSIONS = {VERSION}
+PROTOCOL, VERSION, MODEL_VERSION = "ship-exchange", "0.2", "0.3"
+VERSIONS = {VERSION, MODEL_VERSION}
 USES = ("PROTOCOL_TEST", "PHYSICS_TRAINING", "PHYSICS_BENCHMARK")
 STATE = [("x", "float64", "cm"), ("y", "float64", "cm"), ("z", "float64", "cm"), ("t", "float64", "ns"),
          ("px", "float64", "GeV/c"), ("py", "float64", "GeV/c"), ("pz", "float64", "GeV/c"), ("pdg", "int32", "-")]
@@ -147,13 +148,63 @@ def propose_resample(problem_dir: Path, out: Path, n: int, seed: int, use: str =
              for i, k in enumerate(picks)]
     out.mkdir(parents=True, exist_ok=True)
     pq.write_table(pa.Table.from_pylist(props, schema=_schema(PROPOSALS_COLUMNS)), out / "proposals.parquet")
-    manifest = {"protocol": PROTOCOL, "protocol_version": VERSION, "artifact_type": "ProposalDelivery",
+    delivery_id = _write_delivery(out, m, use, props, VERSION, "EMPIRICAL_RESAMPLE", "UNIFORM_OVER_TRAINING_ROWS",
+                                  {"method": "uniform resample with replacement (stdlib random.Random)", "seed": seed, "n": n})
+    return {"delivery_id": delivery_id, "proposals": n, "distinct_parents": len(set(picks))}
+
+
+def _write_delivery(out: Path, m: dict, use: str, props: list[dict], version: str, kind: str, base_measure, generator: dict) -> str:
+    out.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.Table.from_pylist(props, schema=_schema(PROPOSALS_COLUMNS)), out / "proposals.parquet")
+    manifest = {"protocol": PROTOCOL, "protocol_version": version, "artifact_type": "ProposalDelivery",
                 "training_problem_id": m["problem_id"], "state_definition_id": m["state_definition_id"], "use": use,
-                "proposal_kind": "EMPIRICAL_RESAMPLE", "base_measure": "UNIFORM_OVER_TRAINING_ROWS", "density": None,
-                "generator": {"method": "uniform resample with replacement (stdlib random.Random)", "seed": seed, "n": n},
+                "proposal_kind": kind, "base_measure": base_measure, "density": None, "generator": generator,
                 "columns": PROPOSALS_COLUMNS,
                 "files": {"proposals.parquet": {"sha256": _sha(out / "proposals.parquet"), "rows": len(props)}}}
     manifest["delivery_id"] = "pd-" + hashlib.sha256(_canonical(manifest).encode()).hexdigest()[:16]
     manifest["created_by"] = {"repo": "ship-nf", "commit": _commit()}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
-    return {"delivery_id": manifest["delivery_id"], "proposals": n, "distinct_parents": len(set(picks))}
+    return manifest["delivery_id"]
+
+
+def write_model_delivery(problem_dir: Path, out: Path, states: list[dict], generator: dict, use: str = "PROTOCOL_TEST") -> str:
+    """``MODEL_SAMPLE`` delivery (0.3): ``states`` are new model draws, each a dict of the STATE columns.
+
+    ``generator`` must name ``model_id``; it becomes every row's lineage (``parent_state_id = "model:<model_id>"``).
+    """
+    m, _ = load_problem(problem_dir)
+    require_use(m, use)
+    parent = "model:" + generator["model_id"]
+    props = [{"proposal_id": f"ms:{generator['model_id']}:{i}", "parent_state_id": parent, **{c: s[c] for c, _, _ in STATE}}
+             for i, s in enumerate(states)]
+    return _write_delivery(out, m, use, props, MODEL_VERSION, "MODEL_SAMPLE", None, generator)
+
+
+EVALUATION_COLUMNS = [{"name": "proposal_id", "dtype": "string", "unit": "-", "role": "id"},
+                      {"name": "category", "dtype": "string", "unit": "-", "role": "label"},
+                      {"name": "n_dis", "dtype": "int32", "unit": "1", "role": "count"},
+                      {"name": "n_r", "dtype": "int32", "unit": "1", "role": "count"}]
+
+
+def load_report(report_dir: Path, delivery_dir: Path) -> list[dict]:
+    """One dict per proposal: its state columns + ``counts = {category: (n_dis, n_r)}``. Refuses a report of another delivery."""
+    report_dir, delivery_dir = Path(report_dir), Path(delivery_dir)
+    m = json.loads((report_dir / "manifest.json").read_text())
+    d = json.loads((delivery_dir / "manifest.json").read_text())
+    errors = []
+    if (m["protocol"], m["protocol_version"], m["artifact_type"]) != (PROTOCOL, MODEL_VERSION, "EvaluationReport"):
+        errors.append(f"not an 0.3 EvaluationReport: {m['protocol_version']}/{m['artifact_type']}")
+    if m["delivery_id"] != d["delivery_id"]:
+        errors.append(f"report answers {m['delivery_id']}, not {d['delivery_id']}")
+    if m["columns"] != EVALUATION_COLUMNS or _sha(report_dir / "evaluations.parquet") != m["files"]["evaluations.parquet"]["sha256"]:
+        errors.append("evaluations.parquet columns or sha256 differ from the manifest")
+    if errors:
+        raise ContractError(errors)
+    props = {r["proposal_id"]: r for r in pq.read_table(delivery_dir / "proposals.parquet").to_pylist()}
+    rows = pq.read_table(report_dir / "evaluations.parquet").to_pylist()
+    if not {r["proposal_id"] for r in rows} <= set(props) or any(not 0 <= r["n_r"] <= r["n_dis"] for r in rows):
+        raise ContractError(["report rows name unknown proposals or have n_r outside [0, n_dis]"])
+    out = {pid: {**p, "counts": {}, "endpoint_definition_id": m["endpoint_definition_id"]} for pid, p in props.items()}
+    for r in rows:
+        out[r["proposal_id"]]["counts"][r["category"]] = (r["n_dis"], r["n_r"])
+    return list(out.values())

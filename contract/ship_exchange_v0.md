@@ -1,4 +1,4 @@
-# ship-exchange protocol 0.2 (PROVISIONAL)
+# ship-exchange protocol 0.3 (PROVISIONAL)
 
 The only interface between repo A (`ship-nf`) and repo B (`ship-fs-pipeline`). Each repo carries a byte-identical copy
 of this file and its own reader/writer; no Python module is shared. The B interoperability test fails if the two copies
@@ -9,18 +9,19 @@ differ. Status words follow `EMPIRICAL_FAIRSHIP_CONTRACT.md`: VERIFIED, PROJECT 
 An artifact is a directory: `manifest.json` + one Parquet table. ROOT files are never part of an artifact; they stay
 where they were produced and are referenced by path and sha256 (evidence, never rewritten).
 
-| artifact | direction | table | status in 0.2 |
+| artifact | direction | table | status in 0.3 |
 |---|---|---|---|
 | `TrainingProblem` | B -> A | `states.parquet` | defined |
-| `ProposalDelivery` | A -> B | `proposals.parquet` | defined, `EMPIRICAL_RESAMPLE` only |
-| `EvaluationReport` | B -> analysis | - | not defined; B's results model stays internal to B |
+| `ProposalDelivery` | A -> B | `proposals.parquet` | defined: `EMPIRICAL_RESAMPLE`, `MODEL_SAMPLE` (0.3) |
+| `EvaluationReport` | B -> A | `evaluations.parquet` | defined in 0.3 (§4b): per-proposal stage counts, PROTOCOL_TEST |
 
 ## 2. Common manifest keys (all required)
 
-`protocol = "ship-exchange"`, `protocol_version = "0.2"`, `artifact_type`, an artifact id, `columns` (ordered list of
+`protocol = "ship-exchange"`, `protocol_version` in {"0.2", "0.3"}, `artifact_type`, an artifact id, `columns` (ordered list of
 `{name, dtype, unit, role}`), `files = {<table>: {sha256, rows}}`, `created_by = {repo, commit}`.
 
-Compatibility rule: a reader accepts exactly the `protocol_version` values it lists (0.2 only; 0.1 is rejected). Any change to a column,
+Compatibility rule: a reader accepts exactly the `protocol_version` values it lists (0.2 and 0.3; 0.1 is rejected).
+0.3 only adds §4 `MODEL_SAMPLE` and §4b; every 0.2 rule still holds, and a 0.2 delivery may not use the 0.3 additions. Any change to a column,
 unit, dtype, role, enum value or rule below requires a new version; there is no "compatible minor" in 0.x.
 A reader rejects: unknown version or type, missing key, missing/extra column, wrong dtype or unit, file sha256 or row
 count mismatch, non-finite value in a float column.
@@ -89,6 +90,33 @@ Rules (0.2):
 - `base_measure = "UNIFORM_OVER_TRAINING_ROWS"` is the only defined value. It is NOT `P0`: the nominal measure is
   undefined while `nominal_measure_id` is null. Any other value is rejected.
 - `proposal_id` unique.
+- `proposal_kind = "MODEL_SAMPLE"` (0.3 only): each row is a new state drawn from a model fitted by A; it is not an atom
+  of the training table. `parent_state_id = "model:" + generator.model_id` (lineage to the model, never to a row).
+  `base_measure` and `density` are `null`: B does not use a model density in 0.3 (the reference measure and Jacobian
+  stay A-internal). Every row must lie on the state plane (`|z - center_z| <= half_z`, `|x - center_x| <= half_x`,
+  `|y - center_y| <= half_y` of `state_definition.plane`, each with 1e-3 cm tolerance for float32 FairShip points), have `pz > 0` and `|pdg| = 13`. A model state carries no
+  incident context (no own hits, no same-event companions): stages that need it are unevaluated (OPEN-INC-01).
+
+## 4b. EvaluationReport (B -> A, 0.3)
+
+Manifest keys besides §2: `report_id`, `delivery_id`, `training_problem_id`, `use`, `endpoint_definition_id`,
+`endpoint_definition`, `context_mode`, `execution = {fairship, seeds, evidence}`.
+
+`evaluations.parquet` columns, in this order: `proposal_id` (string, id), `category` (string, the newMuonDIS
+`MuonPath` category of the DIS vertex: REST, MS, UBT, HeBalloon, HE, AIR, SSTsens, SSTfr, SBTfr, SBTsens;
+FairShip 8a1cc53 `newMuonDIS/MuonPath.cxx:95-127`), `n_dis` (int32, count of DIS events), `n_r` (int32, count of
+those DIS events with at least one reconstructed `goodTracks` entry).
+
+Rules (0.3):
+
+- One row per (proposal, category) with `n_dis > 0`; a proposal of the delivery with no row had no DIS. No other
+  proposal ids. Counts are non-negative and `n_r <= n_dis`.
+- `endpoint_definition_id` names the stage counted. 0.3 defines only `r_demo_v0`: R = the DIS event has >= 1 FairShip
+  `goodTracks` (converged fit, 0 <= chi2/ndf < 50). It is a reconstruction count, not S, V or B, and PROTOCOL_TEST only.
+- UBT-category DIS sit on vacuum scoring planes in the audited geometry and are NOT_ELIGIBLE under `dis_eligibility_v0`;
+  categories are never pooled by B. Category is a volume/material label, not the eligibility decision itself.
+- `context_mode` declares the incident context the replay had (`P2_ONLY_DIAGNOSTIC` for model states).
+- No weight column: counts are conditional on the forced DIS, never a rate.
 
 ## 5. OPEN, carried by every 0.2 artifact
 
@@ -98,6 +126,9 @@ the downstream endpoint (upstream MS-DIS); vacuum scoring-plane volumes classifi
 log-announced map files.
 
 ## 6. Changelog
+
+- 0.3 (2026-11-19): `MODEL_SAMPLE` deliveries and the `EvaluationReport` artifact, for the demo loop
+  P0 -> tilt -> NF -> FairShip -> U. PROTOCOL_TEST only.
 
 - 0.2 (2026-11-03, after review GO WITH CHANGES): verifiable `source_dataset_id`, `source_dataset_label`,
   per-run production config, `permitted_use` / `use`. 0.1 artifacts are rejected.
