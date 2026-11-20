@@ -94,6 +94,61 @@ Why these choices: the 5th-neighbour distance is the d(x) already used in `densi
 the error there. The mass ratio is `tail_mass_ratio` of `diagnostics.py`, the generative-coverage idea of Naeem et al.
 (2020), and it answers "how much of the real mass does the NF give back" in the units a sampler cares about.
 
+## A. Reusing the flow's own edge samples (figure A, new training)
+
+`selfconsume.py` (system 3 of `density_studies.md`) does not answer this question. Its arms are "self" (own samples
+only) and "anchored" (half real rows). Neither selects the edge, and its tail is the radial score on a random 20 % test
+split, not the px rule. So this needed a new pilot: `ship_nf.edge_reuse`.
+
+Data trace: generation 0 is `meeting_1121/flow.pt` (sha256 `173985…`, the figure 3/4 checkpoint) with the split of
+`tail_demo.load(npz, seed=1)`. In each round both arms keep the 15 806 real train rows and add m = 574 samples drawn
+from their own previous flow. Control takes the first m finite samples. Edge keeps only samples with 2 < |z_px| ≤ 2.5,
+searching at most 200 000 proposals (10 × 20 000). m = 574 gives the edge arm the real edge/centre ratio
+(638 / 17 562). Both arms fit with the same `flow.fit` seed, Adam at 3e-3, 400 full-batch epochs and
+16 380 rows. Each checkpoint is scored on 200 000 fresh unfiltered samples:
+`R = (exterior samples on that side / 200 000) / (real exterior rows on that side / 19 787)`. val_interp, val and test
+never enter training. The real exterior counts were already known from figure 4.
+
+| seed | arm | gen | edge accepted / generated | left n, R | right n, R | median NLL val_interp |
+|---|---|---|---|---|---|---|
+| 1 | g0 | 0 | | 24, 0.063 | 89, 0.006 | −5.65 |
+| 1 | control | 1 / 2 | | 50, 0.13 / 61, 0.16 | 49, 0.003 / 155, 0.010 | −5.73 / −5.69 |
+| 1 | edge | 1 / 2 | 574/120 000, 574/40 000 | 94, 0.24 / 96, 0.25 | 491, 0.031 / 1 520, 0.097 | −5.67 / −5.70 |
+| 2 | g0 | 0 | | 43, 0.11 | 77, 0.005 | −5.65 |
+| 2 | control | 1 / 2 | | 80, 0.21 / 30, 0.08 | 434, 0.028 / 172, 0.011 | −5.70 / −5.72 |
+| 2 | edge | 1 / 2 | 574/120 000, 574/40 000 | 190, 0.49 / 57, 0.15 | 1 125, 0.072 / 1 035, 0.066 | −5.70 / −5.67 |
+
+The left exterior has 38 real rows and the right 1 549. On the right, the edge arm ends both rounds above control in
+both seeds, by 2.6 to 10 times, but R stays at or below 0.1. On the left the edge arm is above control in all four
+seed-round pairs, at R up to 0.5. With 38 reference rows and 24 to 190 NF samples, that side is noisy: the same
+generation-0 flow gives 0.063 or 0.11 depending only on the evaluation stream. Edge acceptance rose from 0.48 % to
+1.4 % between rounds, so the edge arm puts more mass on the edge each round. The median NLL of val_interp moves by
+at most 0.06 nats between arms, with no consistent sign. At this size there is no visible cost in the centre.
+This is an exploratory result from two seeds and two rounds.
+
+```sh
+.venv/bin/python -m ship_nf edge-reuse AFTERMS.npz --ckpt docs/meeting_1121/flow.pt --out ~/thesis/scratch/demos_1120/edge_reuse  # ~6 min
+.venv/bin/python plots/figA_edge_reuse.py docs/meeting_1121/edge_reuse.json --out docs/meeting_1121/figA_edge_reuse
+```
+
+## B. Mass deficit against distance from known data (figure B, saved results)
+
+This is figure 4 redrawn from the same `result.json` and `samples.npz`, with no training. A zero ratio is drawn as a
+hatched bar, a band with no reference row says "no estimate", and the open last band shows the largest real
+distance and how many NF exterior samples lie past it.
+
+The largest real distance is 4.26 to training and 6.81 to the shell. 11 of the 41 NF exterior samples lie beyond it
+in both panels: 11 of the 26 samples in the last d_train band and 11 of the 29 in the last d_val band. Those samples
+sit far from every real row. The last band's R (0.032 and 0.036) is the highest because of them, not because the flow
+reproduces the far tail. The ratio does not fall with distance. Every band is between 0.001 and 0.04, and the counts
+per band are 1 to 7 NF samples outside the last band. The NLL of real exterior rows does rise with distance to
+training (median 4.3 to 62 nats per row, `ref_nll_median` in `result.json`). That is a separate statement, about how
+unlikely the real rows are under the flow.
+
+```sh
+.venv/bin/python plots/figB_mass_vs_distance.py docs/meeting_1121 --out docs/meeting_1121/figB_mass_vs_distance
+```
+
 ## Checks done
 
 - Join: the report names its delivery, `fig1` refuses a mismatch; existing tests `test_evaluate.py`, `test_interop.py`.
@@ -118,9 +173,17 @@ the error there. The mass ratio is `tail_mass_ratio` of `diagnostics.py`, the ge
 - PROVISIONAL: k = 2 / 2.5, quintile bands, k = 5 neighbours, sizes and seeds of the learning curve, the hand-typed
   state. afterMS is not P2 (#43).
 - OPEN: which ESS threshold moves the ladder; the tail-size question; stored weights.
+- Figure A: VERIFIED that the arms differ only in the edge filter (same rows, size, fit seed, epochs) and that the
+  numbers come from `edge_reuse.json`. PROVISIONAL: m = 574, two rounds, two seeds, the 200 000 proposal cap. OPEN:
+  whether the gain survives more seeds and rounds, and the left side, where the reference has only 38 rows.
+- Figure B: VERIFIED from the saved files, no new training. The beyond-max count reuses the saved distances.
 
 ## What you should check
 
 1. Open `~/thesis/scratch/demos_1120/demo1/nf/eval/report/manifest.json` and confirm the delivery id matches figure 1.
 2. Decide whether `px` alone is the right variable for the tail story, or whether to split on the radial score.
 3. Figure 4: decide whether the last band should be closed at the largest real distance.
+4. Figure A: whether m should follow the real edge/centre ratio (574) or be larger, and whether the next run should
+   accumulate synthetic rows across rounds instead of replacing them.
+5. Figure B: 11 of 41 NF exterior samples lie beyond every real distance. Look at them in 5D before reading the last
+   band as tail coverage.
