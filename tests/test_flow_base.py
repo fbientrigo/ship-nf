@@ -42,3 +42,34 @@ def test_same_seed_gives_same_initial_weights_for_both_bases():
 def test_unknown_base_is_refused():
     with pytest.raises(ValueError):
         flow.Flow(5, base="cauchy")
+
+
+@pytest.mark.parametrize("coupling", ["affine", "rqs"])
+def test_coupling_inverts_and_log_jacobians_cancel(coupling):
+    pytest.importorskip("zuko") if coupling == "rqs" else None
+    torch.manual_seed(0)
+    m = flow.Flow(5, coupling=coupling)
+    x = torch.randn(16, 5, dtype=torch.float32) * 2
+    z, ld = x, torch.zeros(16)
+    for layer in m.layers:
+        z, d = layer(z)
+        ld = ld + d
+    back = z
+    for layer in reversed(m.layers):
+        back = layer.inverse(back)
+    assert torch.allclose(back, x, atol=1e-4)
+
+    def fwd(v):
+        for layer in m.layers:
+            v = layer(v[None])[0][0]
+        return v
+
+    def inv(v):
+        for layer in reversed(m.layers):
+            v = layer.inverse(v[None])[0]
+        return v
+
+    for i in range(4):
+        lf = torch.linalg.slogdet(torch.autograd.functional.jacobian(fwd, x[i]))[1]
+        li = torch.linalg.slogdet(torch.autograd.functional.jacobian(inv, z[i].detach()))[1]
+        assert abs(lf - ld[i]) < 1e-3 and abs(lf + li) < 1e-3

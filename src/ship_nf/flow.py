@@ -43,6 +43,33 @@ class _Coupling(nn.Module):
         return z * self.mask + (1 - self.mask) * ((z - t) * torch.exp(-s))
 
 
+BINS, BOUND = 8, 5.0  # spline: 8 bins on [-5, 5] of the coupling input (standardised features for the first layer)
+
+
+class _RQSCoupling(_Coupling):
+    """Same mask and conditioner as :class:`_Coupling`; the free coordinates go through a monotonic rational-quadratic
+    spline (zuko ``MonotonicRQSTransform``, Durkan et al. 2019) with linear tails: identity outside ``[-BOUND, BOUND]``.
+    """
+
+    def __init__(self, dim: int, mask: torch.Tensor, hidden: int):
+        super().__init__(dim, mask, hidden)
+        self.net[-1] = nn.Linear(hidden, dim * (3 * BINS - 1))
+
+    def _spline(self, kept: torch.Tensor):
+        from zuko.transforms import MonotonicRQSTransform
+
+        p = self.net(kept).view(len(kept), -1, 3 * BINS - 1)
+        return MonotonicRQSTransform(p[..., :BINS], p[..., BINS:2 * BINS], p[..., 2 * BINS:], bound=BOUND)
+
+    def forward(self, x):
+        y, ladj = self._spline(x * self.mask).call_and_ladj(x)
+        free = 1 - self.mask
+        return x * self.mask + free * y, (free * ladj).sum(-1)
+
+    def inverse(self, z):
+        return z * self.mask + (1 - self.mask) * self._spline(z * self.mask).inv(z)
+
+
 class Flow(nn.Module):
     """RealNVP on ``dim`` features.
 
@@ -57,15 +84,19 @@ class Flow(nn.Module):
     base : str
         Latent base: ``"normal"`` (default, N(0, I)) or ``"t5"`` (independent Student-t per coordinate, nu = 5,
         scale sqrt((nu - 2) / nu) so each coordinate has variance 1).
+    coupling : str
+        ``"affine"`` (default, RealNVP) or ``"rqs"`` (neural spline flow, needs the ``nsf`` extra).
     """
 
-    def __init__(self, dim: int, layers: int = 6, hidden: int = 64, base: str = "normal"):
+    def __init__(self, dim: int, layers: int = 6, hidden: int = 64, base: str = "normal",
+                 coupling: str = "affine"):
         super().__init__()
         if base not in ("normal", "t5"):
             raise ValueError(f"base must be 'normal' or 't5', got {base!r}")
         self.base = base
         masks = [torch.tensor([(i + k) % 2 for i in range(dim)], dtype=torch.float32) for k in range(layers)]
-        self.layers = nn.ModuleList(_Coupling(dim, m, hidden) for m in masks)
+        layer = {"affine": _Coupling, "rqs": _RQSCoupling}[coupling]
+        self.layers = nn.ModuleList(layer(dim, m, hidden) for m in masks)
         self.register_buffer("mean", torch.zeros(dim))
         self.register_buffer("std", torch.ones(dim))
 
@@ -95,7 +126,7 @@ class Flow(nn.Module):
 
 
 def fit(x: np.ndarray, seed: int, epochs: int = 400, lr: float = 3e-3, base: str = "normal",
-        device: str = "cpu") -> tuple[Flow, list[float]]:
+        device: str = "cpu", coupling: str = "affine") -> tuple[Flow, list[float]]:
     """Fit a :class:`Flow` to ``x`` (rows = samples) by maximum likelihood, full batch.
 
     Returns
@@ -106,7 +137,7 @@ def fit(x: np.ndarray, seed: int, epochs: int = 400, lr: float = 3e-3, base: str
     """
     torch.manual_seed(seed)
     xt = torch.as_tensor(x, dtype=torch.float32)
-    flow = Flow(x.shape[1], base=base)  # weights drawn on CPU: same init for every base and device
+    flow = Flow(x.shape[1], base=base, coupling=coupling)  # weights drawn on CPU: same init for every base and device
     xt, flow = xt.to(device), flow.to(device)
     flow.mean.copy_(xt.mean(0))
     flow.std.copy_(xt.std(0).clamp_min(1e-6))
