@@ -1,6 +1,6 @@
 """Figure 2: validation tail quality vs distinct training states. Reads learning_curve.json only (no training).
 
-    .venv/bin/python scripts/fig2_learning_curve.py RESULT_DIR [--loop-delivery DIR] --out fig2.png
+    .venv/bin/python plots/fig2_learning_curve.py RESULT_DIR [--loop-delivery DIR] --out fig2.png
 """
 import argparse
 import json

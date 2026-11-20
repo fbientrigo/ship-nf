@@ -106,9 +106,9 @@ the error there. The mass ratio is `tail_mass_ratio` of `diagnostics.py`, the ge
 ```sh
 .venv/bin/python -m ship_nf learning-curve AFTERMS.npz --out demo2   # ~5 min, writes learning_curve.json
 .venv/bin/python -m ship_nf tail-demo AFTERMS.npz --out demo34       # ~2 min, flow.pt, samples.npz, result.json
-.venv/bin/python scripts/fig2_learning_curve.py docs/meeting_1121 --loop-delivery ~/thesis/scratch/demos_1120/demo1/nf/delivery --out fig2.png
-.venv/bin/python scripts/fig3_tail_histogram.py docs/meeting_1121 --out fig3.png
-.venv/bin/python scripts/fig4_mass_vs_distance.py docs/meeting_1121 --out fig4.png
+.venv/bin/python plots/fig2_learning_curve.py docs/meeting_1121 --loop-delivery ~/thesis/scratch/demos_1120/demo1/nf/delivery --out fig2.png
+.venv/bin/python plots/fig3_tail_histogram.py docs/meeting_1121 --out fig3.png
+.venv/bin/python plots/fig4_mass_vs_distance.py docs/meeting_1121 --out fig4.png
 ```
 
 ## VERIFIED / PROVISIONAL / OPEN

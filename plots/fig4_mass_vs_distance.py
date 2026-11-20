@@ -1,7 +1,7 @@
 """Figure 4: flow/real mass ratio in the test region per distance band, vs d_train (left) and d_val (right).
 Reads result.json of ``ship_nf tail-demo`` (no training, no distances recomputed).
 
-    .venv/bin/python scripts/fig4_mass_vs_distance.py RESULT_DIR --out fig4.png
+    .venv/bin/python plots/fig4_mass_vs_distance.py RESULT_DIR --out fig4.png
 """
 import argparse
 import json

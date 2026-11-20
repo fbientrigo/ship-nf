@@ -1,7 +1,7 @@
 """Figure 3: px of real rows vs flow samples, both as a fraction of their own total, regions shaded.
 Reads samples.npz + result.json of ``ship_nf tail-demo`` (no training).
 
-    .venv/bin/python scripts/fig3_tail_histogram.py RESULT_DIR --out fig3.png
+    .venv/bin/python plots/fig3_tail_histogram.py RESULT_DIR --out fig3.png
 """
 import argparse
 import json
