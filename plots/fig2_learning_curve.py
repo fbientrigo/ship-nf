@@ -39,7 +39,7 @@ note = "" if not a.loop_delivery else f"afterMS px, pdg {res['data']['pdg']}; va
 if a.loop_delivery:
     g = json.loads((a.loop_delivery / "manifest.json").read_text())["generator"]
     note += f"\nFairShip loop tilt: {g['rows']} distinct states, {g.get('distinct_progenitors', '?')} progenitors, " \
-            f"Kish ESS {g['tilt_kish_ess']:.1f} before resampling, {g['config']['n_train']} resampled rows, {g['n']} proposals"
-fig.text(0.01, 0.01, note, fontsize=7)
+            f"Kish ESS {g['tilt_kish_ess']:.1f} before resampling, {g['config']['n_train']} resampled rows, {g['n']} proposal{'s' if g['n'] != 1 else ''}"
+fig.text(0.01, 0.01, note, fontsize=8)
 fig.tight_layout(rect=(0, 0.07 if note else 0, 1, 1))
 fig.savefig(a.out, dpi=150)

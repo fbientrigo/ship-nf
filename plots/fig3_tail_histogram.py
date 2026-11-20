@@ -34,13 +34,13 @@ for xc, name in ((med, "train\n|z| <= 2"), (med - 2.25 * sig, "val"), (med + 2.2
 ax.hist(ref, bins, weights=np.full(len(ref), 1 / len(ref)), histtype="step", color="k", lw=1.5,
         label=f"reference (all {len(ref)} rows)")
 ax.hist(gen, bins, weights=np.full(len(gen), 1 / n_gen_total), histtype="step", color="C0", lw=1.5,
-        label=f"NF ({n_gen_total} samples, / total before filter)")
+        label=f"NF ({n_gen_total} samples, divided by the total before any cut)")
 ax.set_yscale("log")
 ax.set_xlabel("px (GeV/c), afterMS, pdg %d" % res["data"]["pdg"])
 ax.set_ylabel("fraction of total per bin")
 r = res["region_request"]
-ax.text(0.99, 0.62, f"separate request in test region:\n{r['requested']} asked, {r['generated']} generated,\n"
-        f"{r['accepted']} accepted", transform=ax.transAxes, ha="right", va="top", fontsize=9,
+ax.text(0.01, 0.97, f"test-region request:\n{r['requested']} asked\n{r['generated']} generated\n"
+        f"{r['accepted']} accepted", transform=ax.transAxes, ha="left", va="top", fontsize=9,
         bbox=dict(fc="white", ec="#999"))
 ax.legend(loc="upper right", fontsize=8.5)
 fig.tight_layout(pad=0.3)
