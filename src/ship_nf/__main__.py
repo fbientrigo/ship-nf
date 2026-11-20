@@ -26,15 +26,28 @@ def main(argv=None) -> int:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--alpha", type=float, default=2.0)
     p.add_argument("--delta", type=float, default=0.1)
+    p = sub.add_parser("propose-manual", help="one-state MODEL_SAMPLE delivery for a muon typed by hand (origin MANUAL)")
+    p.add_argument("problem", type=Path)
+    p.add_argument("--out", required=True, type=Path)
+    p.add_argument("--state", required=True, nargs=5, type=float, metavar=("X", "Y", "PX", "PY", "PZ"), help="cm, GeV/c")
+    p.add_argument("--pdg", type=int, default=13)
     p = sub.add_parser("extrapolation", help="systems 1-2: A/B of box vs radial sigma splits, NF error per split and vs d(x)")
     p.add_argument("npz", type=Path, help="afterMS sample, columns [px, py, pz, x, y, z, id, w]")
     p.add_argument("--out", required=True, type=Path)
     p = sub.add_parser("selfconsume", help="system 3: flow retrained on own samples vs anchored on real rows")
     p.add_argument("npz", type=Path)
     p.add_argument("--out", required=True, type=Path)
+    for name, h in (("tail-demo", "demos 3-4: flow on the px centre, region request, mass ratio vs d_train / d_val"),
+                    ("learning-curve", "demo 2: validation tail quality vs number of distinct train rows")):
+        p = sub.add_parser(name, help=h)
+        p.add_argument("npz", type=Path)
+        p.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
     try:
-        if a.cmd == "selfconsume":
+        if a.cmd in ("tail-demo", "learning-curve"):
+            from ship_nf import tail_demo
+            out = (tail_demo.run if a.cmd == "tail-demo" else tail_demo.learning_curve)(a.npz, a.out)
+        elif a.cmd == "selfconsume":
             from ship_nf.selfconsume import study as sc_study
             res = sc_study(a.npz)
             a.out.write_text(json.dumps(res, indent=1))
@@ -44,6 +57,9 @@ def main(argv=None) -> int:
             res = ab_test(a.npz)
             a.out.write_text(json.dumps(res, indent=1))
             out = {"out": str(a.out), "runs": len(res["runs"]), "data": res["data"]}
+        elif a.cmd == "propose-manual":
+            from ship_nf.loop import propose_manual
+            out = propose_manual(a.problem, a.out, *a.state, a.pdg)
         elif a.cmd == "propose-nf":
             from ship_nf.loop import propose  # torch only when needed
             out = propose(a.problem, a.history, a.out, a.m, a.seed, a.alpha, a.delta)
