@@ -1,8 +1,10 @@
-"""Figure: tail mass ratio and interior NLL, Gaussian (A) vs Student-t nu=5 (B) base, from saved results only.
+"""Figure: tail mass ratio and interior NLL per design (A Gaussian/affine, B Student-t/affine, C Gaussian/spline),
+from saved results only.
 
-    .venv/bin/python scripts/fig_tbase.py results/tbase_1120 --out results/tbase_1120/fig_tbase.png
+    .venv/bin/python scripts/fig_tbase.py results/tbase_1120 [results/nsf_1120] --out FIG.png
 
-Reads ``[AB]_s*.json`` written by ``exp_tbase.py``; writes the PNG and a PDF next to it. Never trains.
+Reads ``[ABC]_s*.json`` written by ``exp_tbase.py`` in every given directory; writes the PNG and a PDF next to it.
+Validation shell is the main panel, the already inspected test exterior the secondary one. Never trains.
 """
 
 import argparse
@@ -11,61 +13,70 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-COL = {"A": "#1f77b4", "B": "#d62728"}
+LABEL = {"A": "A: affine, Gaussian base", "B": "B: affine, Student-t base (nu = 5)",
+         "C": "C: spline (RQS, 8 bins, B = 5), Gaussian base"}
+COL = {"A": "#1f77b4", "B": "#d62728", "C": "#2ca02c"}
 MARK = {1: "o", 2: "s"}
 FLOOR = 3e-4  # where a zero count is drawn
 
 
+def xpos(r, designs, i=0, width=0.6):
+    k = designs.index(r["design"])
+    return i + (k - (len(designs) - 1) / 2) * width / len(designs) + (r["seed"] - 1.5) * 0.07
+
+
+def tails(ax, runs, designs, k, title):
+    for i, side in enumerate(("left", "right")):
+        for r in runs:
+            t, x = r["tails"][f"{k}_{side}"], xpos(r, designs, i)
+            zero = t["gen"] == 0
+            y = FLOOR if zero else t["R"]
+            ax.scatter(x, y, marker="v" if zero else MARK[r["seed"]], s=45, color=COL[r["design"]],
+                       edgecolor="k" if zero else "none", zorder=3)
+            ax.annotate(str(t["gen"]), (x, y), xytext=(0, 6), textcoords="offset points", ha="center", fontsize=7,
+                        color=COL[r["design"]])
+    ax.axhline(1, color="k", lw=1, ls="--")
+    ax.text(1.45, 1.1, "R = 1", ha="right", va="bottom", fontsize=8)
+    ax.set_yscale("log")
+    any_zero = any(r["tails"][f"{k}_{s}"]["gen"] == 0 for r in runs for s in ("left", "right"))
+    ax.set_ylim(FLOOR / 2 if any_zero else 1e-3, 3)
+    ax.set_xlim(-0.5, 1.5)
+    r0 = runs[0]["tails"]
+    ax.set_xticks([0, 1], [f"left tail\nreal {r0[f'{k}_left']['ref']}/{r0[f'{k}_left']['ref_total']}",
+                           f"right tail\nreal {r0[f'{k}_right']['ref']}/{r0[f'{k}_right']['ref_total']}"])
+    ax.set_title(title, fontsize=10)
+    ax.grid(axis="y", which="major", alpha=0.3)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("results", type=Path)
+    ap.add_argument("results", type=Path, nargs="+")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
-    runs = [json.loads(p.read_text()) for p in sorted(a.results.glob("[AB]_s*.json"))]
-    env = json.loads((a.results / "env.json").read_text())
+    runs = [json.loads(p.read_text()) for d in a.results for p in sorted(d.glob("[ABC]_s*.json"))]
+    designs = sorted({r["design"] for r in runs})
+    gpus = sorted({json.loads((d / "env.json").read_text())["gpu"] for d in a.results})
     plt.rcParams["font.size"] = 10
-    fig, axes = plt.subplots(1, 3, figsize=(11, 3.8), gridspec_kw={"width_ratios": [1, 1, 0.7]})
-    for ax, k, name in ((axes[0], "val", "validation shell, 2 < |z| <= 2.5"),
-                        (axes[1], "test", "test exterior, |z| > 2.5 (exploratory)")):
-        r0 = runs[0]["tails"]
-        for i, side in enumerate(("left", "right")):
-            for r in runs:
-                t = r["tails"][f"{k}_{side}"]
-                x = i + (-0.2 if r["design"] == "A" else 0.2) + (r["seed"] - 1.5) * 0.16
-                zero = t["gen"] == 0
-                ax.scatter(x, FLOOR if zero else t["R"], marker="v" if zero else MARK[r["seed"]], s=45,
-                           color=COL[r["design"]], edgecolor="k" if zero else "none", zorder=3)
-                ax.annotate(str(t["gen"]), (x, FLOOR if zero else t["R"]), xytext=(0, 6), textcoords="offset points",
-                            ha="center", fontsize=7, color=COL[r["design"]])
-        ax.axhline(1, color="k", lw=1, ls="--")
-        ax.text(1.45, 1.1, "R = 1", ha="right", va="bottom", fontsize=8)
-        ax.set_yscale("log")
-        any_zero = any(r["tails"][f"{k}_{s}"]["gen"] == 0 for r in runs for s in ("left", "right"))
-        ax.set_ylim(FLOOR / 2 if any_zero else 2e-3, 3)
-        ax.set_xlim(-0.5, 1.5)
-        ax.set_xticks([0, 1], [f"left tail\n(real {r0[f'{k}_left']['ref']} of {r0[f'{k}_left']['ref_total']})",
-                               f"right tail\n(real {r0[f'{k}_right']['ref']} of {r0[f'{k}_right']['ref_total']})"])
-        ax.set_title(name, fontsize=10)
-        ax.grid(axis="y", which="major", alpha=0.3)
+    fig, axes = plt.subplots(1, 4, figsize=(13, 4.2), gridspec_kw={"width_ratios": [1.35, 1, 0.55, 0.55]})
+    tails(axes[0], runs, designs, "val", "validation shell, 2 < |z| <= 2.5 (main)")
+    tails(axes[1], runs, designs, "test", "test exterior, |z| > 2.5 (exploratory)")
     axes[0].set_ylabel("mass ratio R = (gen frac) / (real frac)")
-    ax = axes[2]
-    for r in runs:
-        x = (0 if r["design"] == "A" else 1) + (r["seed"] - 1.5) * 0.15
-        ax.scatter(x, r["val_interp_nll"]["median"], marker=MARK[r["seed"]], s=45, color=COL[r["design"]])
-    ax.set_xticks([0, 1], ["A", "B"])
-    ax.set_xlim(-0.5, 1.5)
-    ax.set_ylabel("median NLL, val_interp (nats)")
-    ax.set_title("interior (|z| <= 2)", fontsize=10)
-    ax.grid(axis="y", alpha=0.3)
-    h = [plt.Line2D([], [], ls="", marker="o", color=COL["A"], label="A: Gaussian base"),
-         plt.Line2D([], [], ls="", marker="o", color=COL["B"], label="B: Student-t base, nu = 5"),
-         plt.Line2D([], [], ls="", marker="o", color="gray", label="seed 1"),
-         plt.Line2D([], [], ls="", marker="s", color="gray", label="seed 2"),
-         plt.Line2D([], [], ls="", marker="v", color="w", markeredgecolor="k", label="0 generated")]
-    fig.legend(handles=h, loc="lower center", ncol=5, fontsize=8, frameon=False)
+    for ax, stat in zip(axes[2:], ("median", "mean")):
+        for r in runs:
+            ax.scatter(xpos(r, designs, 0, 1.2) + 0.5, r["val_interp_nll"][stat], marker=MARK[r["seed"]], s=45,
+                       color=COL[r["design"]])
+        ax.set_xticks([xpos({"design": d, "seed": 1.5}, designs, 0, 1.2) + 0.5 for d in designs], designs)
+        ax.set_xlim(-0.3, 1.3)
+        ax.set_title(f"interior {stat} NLL", fontsize=10)
+        ax.grid(axis="y", alpha=0.3)
+    axes[2].set_ylabel("NLL on val_interp, |z| <= 2 (nats, lower is better)")
+    h = [plt.Line2D([], [], ls="", marker="o", color=COL[d], label=LABEL[d]) for d in designs]
+    h += [plt.Line2D([], [], ls="", marker=MARK[s], color="gray", label=f"seed {s}") for s in MARK]
+    h += [plt.Line2D([], [], ls="", marker="v", color="w", markeredgecolor="k", label="0 generated")]
+    fig.legend(handles=h, loc="lower center", ncol=len(h), fontsize=8, frameon=False)
     n = runs[0]["generated"]["total"]
-    fig.suptitle(f"RealNVP base A vs B, trained on centre only: afterMS mu-, px "
-                 f"({n:,} unfiltered draws per run, numbers = generated counts, {env['gpu']})", fontsize=10)
+    fig.suptitle(f"Flow designs trained on centre only: afterMS mu-, px ({n:,} unfiltered draws per run, "
+                 f"numbers = generated counts, {', '.join(gpus)})", fontsize=10)
     fig.tight_layout(rect=(0, 0.07, 1, 1))
     fig.savefig(a.out, dpi=200)
     fig.savefig(a.out.with_suffix(".pdf"))

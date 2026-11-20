@@ -1,0 +1,85 @@
+{
+ "design": "C",
+ "base": "normal",
+ "coupling": "rqs",
+ "trainable_params": 72114,
+ "spline": {
+  "bins": 8,
+  "bound": 5.0,
+  "tails": "linear (identity outside [-bound, bound])",
+  "impl": "zuko.transforms.MonotonicRQSTransform"
+ },
+ "pre_train_checks": {
+  "roundtrip_max_abs": 3.218650817871094e-05,
+  "logdet_vs_autograd_max_abs": 4.1425228118896484e-06,
+  "fwd_plus_inv_logdet_max_abs": 3.3527612686157227e-06,
+  "log_prob_finite": 15806,
+  "rows": 15806
+ },
+ "seed": 1,
+ "split_seed": 1,
+ "epochs": 400,
+ "checkpoint_rule": "last of 400 full-batch Adam steps (lr 3e-3), no early stopping",
+ "device": "cuda",
+ "train_seconds": 43.883638674999986,
+ "final_train_nll": -3.936460018157959,
+ "val_interp_nll": {
+  "median": -5.69245719909668,
+  "mean": -3.9913737773895264,
+  "n": 1756,
+  "finite": 1756
+ },
+ "generated": {
+  "total": 200000,
+  "sample_seed": 1001,
+  "nonfinite_features": 0,
+  "nonfinite_px": 0,
+  "valid": 200000
+ },
+ "tails": {
+  "val_left": {
+   "gen": 6,
+   "gen_total": 200000,
+   "ref": 29,
+   "ref_total": 19787,
+   "R": 0.020469310344827588
+  },
+  "val_right": {
+   "gen": 1909,
+   "gen_total": 200000,
+   "ref": 609,
+   "ref_total": 19787,
+   "R": 0.31012629720853857
+  },
+  "val_both": {
+   "gen": 1915,
+   "gen_total": 200000,
+   "ref": 638,
+   "ref_total": 19787,
+   "R": 0.2969600705329154
+  },
+  "test_left": {
+   "gen": 8,
+   "gen_total": 200000,
+   "ref": 38,
+   "ref_total": 19787,
+   "R": 0.02082842105263158
+  },
+  "test_right": {
+   "gen": 38,
+   "gen_total": 200000,
+   "ref": 1549,
+   "ref_total": 19787,
+   "R": 0.0024270690768237574
+  },
+  "test_both": {
+   "gen": 46,
+   "gen_total": 200000,
+   "ref": 1587,
+   "ref_total": 19787,
+   "R": 0.00286768115942029
+  }
+ },
+ "checkpoint": "C_s1.pt",
+ "checkpoint_sha256": "8daf8c2a91778da6b897d39ccc037ff4c66d268db7dbfae33a07a2450e9929ca"
+}

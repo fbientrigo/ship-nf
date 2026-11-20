@@ -1,0 +1,8 @@
+Tesla T4
+a45fc522fb2d334991305eb41bf4b82f2b60c52a9b3347217901da9f7bc46f16  data/muonsFullMC_afterMS_sample.npz
+/content/w/scripts/exp_tbase.py:68: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  out = {"roundtrip_max_abs": float((back - (x - model.mean) / model.std).abs().max()),
+{"gpu": "Tesla T4", "torch": "2.14.1+cu130", "cuda": "13.0", "forward_backward": {"param_device": "cuda:0", "grad_device": "cuda:0", "batch_device": "cuda:0", "grad_finite": true}, "split_rows": {"train": 15806, "val_interp": 1756, "val": 638, "test": 1587}}
+C 1 43.9s nll -5.692 {'val_left': 0.020469310344827588, 'val_right': 0.31012629720853857, 'val_both': 0.2969600705329154, 'test_left': 0.02082842105263158, 'test_right': 0.0024270690768237574, 'test_both': 0.00286768115942029}
+C 2 40.9s nll -5.753 {'val_left': 0.027292413793103452, 'val_right': 0.07489168308702793, 'val_both': 0.07272807993730408, 'test_left': 0.007810657894736842, 'test_right': 0.004151565526145901, 'test_both': 0.004239180844360428}
