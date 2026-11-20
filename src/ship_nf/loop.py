@@ -73,6 +73,22 @@ def _quad(z: np.ndarray) -> np.ndarray:
     return np.column_stack([np.ones(len(z)), z, z[:, i] * z[:, j]])
 
 
+def observed(evaluated: list[dict]) -> tuple[np.ndarray, np.ndarray]:
+    """OBSERVED, per evaluated proposal: ``n`` evaluable realizations and ``y`` positives at the endpoint.
+
+    One realization = one eligible DIS event FairShip produced and replayed for that state; ``Y_k = 1`` when it
+    reaches the report's endpoint (``r_demo_v0``: >= 1 goodTracks). A repeated state keeps all its realizations as
+    ``y`` out of ``n`` (binomial), never one averaged label. UBT DIS (NOT_ELIGIBLE) are outside ``n``. A technical
+    failure never reaches here: ``fs_evaluate.sh`` stops without writing a report, so its proposal has no rows.
+    """
+    n = np.array([sum(d for c, (d, _) in r["counts"].items() if c not in EXCLUDED) for r in evaluated], dtype=float)
+    y = np.array([sum(k for c, (_, k) in r["counts"].items() if c not in EXCLUDED) for r in evaluated], dtype=float)
+    return n, y
+
+
+# PREDICTED: U_k(s) scores a state before FairShip sees it. The model is the pair fit_u / utility and nothing else
+# calls it; to swap in a kNN or a tree, replace these two functions with the same signatures. FairShip, the report
+# and the tilt do not change.
 def fit_u(evaluated: list[dict], center: np.ndarray, scale: np.ndarray, iters: int = 30) -> np.ndarray | None:
     """Coefficients of ``U(s) = sigmoid(beta . quad((f(s) - center) / scale))``, or None without data.
 
@@ -83,8 +99,7 @@ def fit_u(evaluated: list[dict], center: np.ndarray, scale: np.ndarray, iters: i
     if not evaluated:
         return None
     x = _quad((features(evaluated) - center) / scale)
-    n = np.array([sum(d for c, (d, _) in r["counts"].items() if c not in EXCLUDED) for r in evaluated], dtype=float)
-    y = np.array([sum(k for c, (_, k) in r["counts"].items() if c not in EXCLUDED) for r in evaluated], dtype=float)
+    n, y = observed(evaluated)
     pen = np.full(x.shape[1], L2)
     pen[0] = 0.0
     beta = np.zeros(x.shape[1])
@@ -148,6 +163,7 @@ def propose(problem_dir: Path, history: list[tuple[Path, Path]], out: Path, m: i
     t0 = float(np.median([r["t"] for r in rows]))
     states = [to_state(cand[i], cz, t0, rows[j]["pdg"]) for i, j in zip(best, nearest)]
 
+    progenitors = {r.get("progenitor_id") for r in rows}
     reports = [json.loads((Path(rep) / "manifest.json").read_text())["report_id"] for _, rep in history]
     config = {"problem_id": pm["problem_id"], "seed": seed, "alpha": alpha, "delta": delta, "u_model": "logistic_quad_v0",
               "l2": L2, "n_train": n_train, "n_cand": n_cand, "jitter": JITTER, "reports": reports}
@@ -155,9 +171,26 @@ def propose(problem_dir: Path, history: list[tuple[Path, Path]], out: Path, m: i
                  "model_id": hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:16],
                  "seed": seed, "n": len(states), "config": config, "features": list(FEATURES),
                  "pdg_rule": "pdg of the nearest training row", "t_rule": "median training t", "z_rule": "plane centre z",
-                 "tilt_kish_ess": kish_ess(pi), "rows": len(rows), "evaluated_proposals": len(evaluated),
+                 "origin": "NF", "tilt_kish_ess": kish_ess(pi), "tilt_base": "equiprobable distinct training rows",
+                 "rows": len(rows), "distinct_progenitors": len(progenitors), "evaluated_proposals": len(evaluated),
                  "final_nll": losses[-1], "candidates_physical": int(ok.sum()),
                  "u_selected": [float(u_cand[i]) for i in best]}
     delivery_id = write_model_delivery(problem_dir, out, states, generator)
-    return {"delivery_id": delivery_id, "states": len(states), "tilt_kish_ess": round(kish_ess(pi), 2),
+    return {"delivery_id": delivery_id, "states": len(states), "rows": len(rows), "distinct_progenitors": len(progenitors),
+            "tilt_kish_ess": round(kish_ess(pi), 2),
             "evaluated_proposals": len(evaluated), "candidates_physical": int(ok.sum()), "final_nll": round(losses[-1], 3)}
+
+
+def propose_manual(problem_dir: Path, out: Path, x: float, y: float, px: float, py: float, pz: float, pdg: int) -> dict:
+    """Write a one-state delivery for a muon defined by hand on the P2 plane (same z, t rules as :func:`propose`).
+
+    It goes through the same validation and FairShip route as an NF state; ``generator.origin = "MANUAL"`` and the
+    ``model_id`` (hash of the state) keep it apart from model draws.
+    """
+    pm, rows = load_problem(problem_dir)
+    state = {"x": x, "y": y, "z": pm["state_definition"]["plane"]["center_cm"][2],
+             "t": float(np.median([r["t"] for r in rows])), "px": px, "py": py, "pz": pz, "pdg": pdg}
+    mid = hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()[:16]
+    generator = {"method": "manual: state typed by hand", "origin": "MANUAL", "model_id": mid, "seed": None, "n": 1,
+                 "state": state}
+    return {"delivery_id": write_model_delivery(problem_dir, out, [state], generator), "origin": "MANUAL", "state": state}
