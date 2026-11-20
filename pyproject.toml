@@ -8,6 +8,9 @@ dependencies = ["pyarrow>=15"]
 [project.optional-dependencies]
 # Normalizing flow and the demo loop. CPU wheels: the workstation has no GPU.
 flow = ["numpy>=1.26", "scipy>=1.11", "torch>=2.4"]
+fig = [
+    "matplotlib>=3.11.2",
+]
 
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }

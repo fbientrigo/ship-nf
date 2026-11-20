@@ -74,3 +74,9 @@ def test_load_report_refuses_another_delivery(tmp_path):
     (rep / "manifest.json").write_text(json.dumps({**m, "delivery_id": "pd-other"}))
     with pytest.raises(ContractError, match="answers pd-other"):
         load_report(rep, tmp_path / "d")
+
+
+def test_observed_keeps_counts_and_drops_ubt_and_unevaluated():
+    from ship_nf.loop import observed
+    n, y = observed([{"counts": {"AIR": (20, 0), "HE": (20, 11), "UBT": (20, 4)}}, {"counts": {}}])
+    assert n.tolist() == [40, 0] and y.tolist() == [11, 0]  # a proposal with no rows adds no trials
