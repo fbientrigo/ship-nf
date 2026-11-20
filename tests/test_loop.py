@@ -12,7 +12,8 @@ import pytest
 pytest.importorskip("torch")
 from ship_nf import flow  # noqa: E402
 from ship_nf.exchange import EVALUATION_COLUMNS, ContractError, _sha, load_problem, load_report  # noqa: E402
-from ship_nf.loop import features, h, kish_ess, propose, to_state, utility  # noqa: E402
+from ship_nf.diagnostics import kish_ess  # noqa: E402
+from ship_nf.loop import features, fit_u, h, propose, to_state, utility  # noqa: E402
 
 FIX = Path(__file__).parent / "fixtures" / "training_problem"
 
@@ -24,14 +25,14 @@ def test_features_round_trip():
         assert np.allclose([b[c] for c in ("x", "y", "px", "py", "pz")], [r[c] for c in ("x", "y", "px", "py", "pz")])
 
 
-def test_utility_without_data_is_flat_and_with_data_prefers_the_hot_neighbour():
-    q = np.array([[0.0, 0, 0, 0, 1], [100.0, 0, 0, 0, 1]])
-    assert np.all(utility(q, [], np.ones(5)) == 1)
+def test_u_is_flat_without_data_and_learns_a_hot_region():
+    center, scale = np.zeros(5), np.ones(5)
+    q = np.array([[0.0, 0, 0, 0, 1], [3.0, 0, 0, 0, 1]])
+    assert np.all(utility(q, fit_u([], center, scale), center, scale) == 1)
     ev = [{"x": x, "y": 0.0, "px": 0.0, "py": 0.0, "pz": np.e, "counts": {"AIR": (40, hits), "UBT": (40, 40)}}
-          for x, hits in [(0.0, 10), (1.0, 10), (100.0, 0), (101.0, 0)]]
-    u = utility(q, ev, np.ones(5))
-    assert u[0] > u[1] > 0  # UBT (excluded) would make both high
-    assert u[0] == pytest.approx(21 / 82)
+          for x, hits in [(-0.5, 12), (0.0, 14), (0.5, 12), (2.5, 0), (3.0, 1), (3.5, 0)]]
+    u = utility(q, fit_u(ev, center, scale), center, scale)
+    assert u[0] > 0.2 > 0.05 > u[1]  # UBT (excluded) would have made both regions hot
 
 
 def test_tilt_keeps_support_and_ess_is_n_when_flat():
