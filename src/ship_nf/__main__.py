@@ -42,11 +42,20 @@ def main(argv=None) -> int:
         p = sub.add_parser(name, help=h)
         p.add_argument("npz", type=Path)
         p.add_argument("--out", required=True, type=Path)
+    p = sub.add_parser("edge-reuse", help="pilot: retrain on own edge samples vs unfiltered, R in the px exterior")
+    p.add_argument("npz", type=Path)
+    p.add_argument("--ckpt", required=True, type=Path, help="centre-trained flow.pt of tail-demo (generation 0)")
+    p.add_argument("--out", required=True, type=Path)
+    p.add_argument("--epochs", type=int, default=400)
     a = ap.parse_args(argv)
     try:
         if a.cmd in ("tail-demo", "learning-curve"):
             from ship_nf import tail_demo
             out = (tail_demo.run if a.cmd == "tail-demo" else tail_demo.learning_curve)(a.npz, a.out)
+        elif a.cmd == "edge-reuse":
+            from ship_nf.edge_reuse import run as er_run
+            res = er_run(a.npz, a.ckpt, a.out, epochs=a.epochs)
+            out = {"out": str(a.out / "edge_reuse.json"), "m": res["settings"]["m"], "commit": res["commit"]}
         elif a.cmd == "selfconsume":
             from ship_nf.selfconsume import study as sc_study
             res = sc_study(a.npz)

@@ -1,0 +1,264 @@
+{
+ "data": {
+  "path": "/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz",
+  "sha256": "a45fc522fb2d334991305eb41bf4b82f2b60c52a9b3347217901da9f7bc46f16",
+  "pdg": 13,
+  "rows": 19787
+ },
+ "checkpoint_g0": "/home/fabian/thesis/greenfield/ship-nf/docs/meeting_1121/flow.pt",
+ "ref_exterior_frac": {
+  "left": 0.0019204528225602669,
+  "right": 0.07828372163541719
+ },
+ "ref_rows": {
+  "total": 19787,
+  "left": 38,
+  "right": 1549
+ },
+ "settings": {
+  "rounds": 2,
+  "m": 574,
+  "max_props": 200000,
+  "batch": 20000,
+  "n_eval": 200000,
+  "epochs": 400,
+  "edge": "2.0 < |z_px| <= 2.5",
+  "exterior": "|z_px| > 2.5",
+  "real_rows_in_training": "train only (val_interp, val, test held out)"
+ },
+ "runs": [
+  {
+   "seed": 1,
+   "gen0": {
+    "n_eval": 200000,
+    "val_interp_nll_median": -5.647096633911133,
+    "val_interp_nll_mean": -4.6748738288879395,
+    "left": {
+     "gen": 24,
+     "R": 0.06248526315789474
+    },
+    "right": {
+     "gen": 89,
+     "R": 0.0056844512588766945
+    }
+   },
+   "control": [
+    {
+     "generation": 1,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 20000,
+      "accepted": 574,
+      "max_batches": 1,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.7337188720703125,
+     "val_interp_nll_mean": -4.696699619293213,
+     "left": {
+      "gen": 50,
+      "R": 0.13017763157894738
+     },
+     "right": {
+      "gen": 49,
+      "R": 0.0031296417043253713
+     }
+    },
+    {
+     "generation": 2,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 20000,
+      "accepted": 574,
+      "max_batches": 1,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.684537887573242,
+     "val_interp_nll_mean": -4.645354747772217,
+     "left": {
+      "gen": 61,
+      "R": 0.15881671052631577
+     },
+     "right": {
+      "gen": 155,
+      "R": 0.009899887023886379
+     }
+    }
+   ],
+   "edge": [
+    {
+     "generation": 1,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 120000,
+      "accepted": 574,
+      "max_batches": 10,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.672971725463867,
+     "val_interp_nll_mean": -4.678454399108887,
+     "left": {
+      "gen": 94,
+      "R": 0.24473394736842105
+     },
+     "right": {
+      "gen": 491,
+      "R": 0.0313602872821175
+     }
+    },
+    {
+     "generation": 2,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 40000,
+      "accepted": 574,
+      "max_batches": 10,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.697461128234863,
+     "val_interp_nll_mean": -4.672032833099365,
+     "left": {
+      "gen": 96,
+      "R": 0.24994105263157895
+     },
+     "right": {
+      "gen": 1520,
+      "R": 0.09708276307295029
+     }
+    }
+   ]
+  },
+  {
+   "seed": 2,
+   "gen0": {
+    "n_eval": 200000,
+    "val_interp_nll_median": -5.647096633911133,
+    "val_interp_nll_mean": -4.6748738288879395,
+    "left": {
+     "gen": 43,
+     "R": 0.11195276315789474
+    },
+    "right": {
+     "gen": 77,
+     "R": 0.0049180083925112975
+    }
+   },
+   "control": [
+    {
+     "generation": 1,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 20000,
+      "accepted": 574,
+      "max_batches": 1,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.701774597167969,
+     "val_interp_nll_mean": -4.717100620269775,
+     "left": {
+      "gen": 80,
+      "R": 0.2082842105263158
+     },
+     "right": {
+      "gen": 434,
+      "R": 0.02771968366688186
+     }
+    },
+    {
+     "generation": 2,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 20000,
+      "accepted": 574,
+      "max_batches": 1,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.719246864318848,
+     "val_interp_nll_mean": -4.752433776855469,
+     "left": {
+      "gen": 30,
+      "R": 0.07810657894736842
+     },
+     "right": {
+      "gen": 172,
+      "R": 0.010985681084570691
+     }
+    }
+   ],
+   "edge": [
+    {
+     "generation": 1,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 120000,
+      "accepted": 574,
+      "max_batches": 10,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.7010297775268555,
+     "val_interp_nll_mean": -4.668791770935059,
+     "left": {
+      "gen": 190,
+      "R": 0.494675
+     },
+     "right": {
+      "gen": 1125,
+      "R": 0.07185401872175597
+     }
+    },
+    {
+     "generation": 2,
+     "m_target": 574,
+     "m_used": 574,
+     "n_train": 16380,
+     "request": {
+      "requested": 574,
+      "generated": 40000,
+      "accepted": 574,
+      "max_batches": 10,
+      "batch": 20000
+     },
+     "n_eval": 200000,
+     "val_interp_nll_median": -5.668529510498047,
+     "val_interp_nll_mean": -4.6659016609191895,
+     "left": {
+      "gen": 57,
+      "R": 0.1484025
+     },
+     "right": {
+      "gen": 1035,
+      "R": 0.06610569722401549
+     }
+    }
+   ]
+  }
+ ],
+ "commit": "6fa4806"
+}
