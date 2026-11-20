@@ -5,6 +5,18 @@ description = "Repo A: normalizing-flow side. No FairShip, no ROOT. Talks to rep
 requires-python = ">=3.11"
 dependencies = ["pyarrow>=15"]
 
+[project.optional-dependencies]
+# Normalizing flow and the demo loop. CPU wheels: the workstation has no GPU.
+flow = ["numpy>=1.26", "torch>=2.4"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [dependency-groups]
 dev = [
     "pytest>=8",

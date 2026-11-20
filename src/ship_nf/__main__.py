@@ -1,4 +1,4 @@
-"""``python -m ship_nf {inspect,propose}``."""
+"""``python -m ship_nf {inspect,propose,propose-nf}``."""
 
 import argparse
 import json
@@ -18,9 +18,21 @@ def main(argv=None) -> int:
     p.add_argument("--n", type=int, default=50)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--use", default="PROTOCOL_TEST", help="must be in the problem's permitted_use")
+    p = sub.add_parser("propose-nf", help="MODEL_SAMPLE delivery: tilt by U from past reports, fit RealNVP, keep top-m by U")
+    p.add_argument("problem", type=Path)
+    p.add_argument("--out", required=True, type=Path)
+    p.add_argument("--history", nargs=2, action="append", default=[], type=Path, metavar=("DELIVERY", "REPORT"))
+    p.add_argument("--m", type=int, default=5)
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--alpha", type=float, default=2.0)
+    p.add_argument("--delta", type=float, default=0.1)
     a = ap.parse_args(argv)
     try:
-        out = summary(*load_problem(a.problem)) if a.cmd == "inspect" else propose_resample(a.problem, a.out, a.n, a.seed, a.use)
+        if a.cmd == "propose-nf":
+            from ship_nf.loop import propose  # torch only when needed
+            out = propose(a.problem, a.history, a.out, a.m, a.seed, a.alpha, a.delta)
+        else:
+            out = summary(*load_problem(a.problem)) if a.cmd == "inspect" else propose_resample(a.problem, a.out, a.n, a.seed, a.use)
     except ContractError as e:
         print(json.dumps({"valid": False, "errors": e.errors}, indent=1))
         return 1
