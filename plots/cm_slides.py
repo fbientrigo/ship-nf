@@ -174,7 +174,7 @@ for k0, k1, c in ((2.5, 99, "#f4cccc"), (2.0, 2.5, "#fff2cc")):
     ax.axvspan(med + k0 * sig, min(hi, med + k1 * sig), color=c, lw=0)
 ax.axvspan(med - 2 * sig, med + 2 * sig, color="#d9ead3", lw=0)
 tr = ax.get_xaxis_transform()
-for xc, name in ((med, "train"), (med + 2.25 * sig, "val"), (med - 2.25 * sig, "val"), ((hi + med + 2.5 * sig) / 2, "test |z| > 2.5"),
+for xc, name in ((med, "train  |zpx| ≤ 2"), (med + 2.25 * sig, "val"), (med - 2.25 * sig, "val"), ((hi + med + 2.5 * sig) / 2, "test |zpx| > 2.5"),
                  ((lo + med - 2.5 * sig) / 2, "test")):
     ax.text(xc, 1.01, name, transform=tr, ha="center", va="bottom", weight="bold")
 ax.hist(ref, bins, weights=np.full(len(ref), 1 / len(ref)), histtype="step", color="k", lw=1.5,
