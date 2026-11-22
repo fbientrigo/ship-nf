@@ -60,9 +60,13 @@ def zpx(f):
     return (px_of(f) - d["median"]) / d["sigma"]
 
 
+TAIL_PX = {}  # px of the tail samples per case, for the shape figure
+
+
 def measure(name, f, draws, w=None):
     zp = zpx(f)
     tail = np.abs(zp) > K_VAL  # nan (non-finite rows) is False
+    TAIL_PX[name] = px_of(f[tail])
     dt = knn_distance((f[tail] - mu) / sd, (tr - mu) / sd, KNN)
     row = {"case": name, "n": len(f), "base_draws": draws, "tail": int(tail.sum()), "tail_frac": float(tail.mean()),
            "unsupported": int((dt > d_max).sum()), "unsupported_frac": float((dt > d_max).mean()) if tail.any() else None,
@@ -119,3 +123,17 @@ bx.set_ylim(0, 100)
 bx.set_ylabel(f"of those: d_train > {d_max:.2f} (%)\n(farther than any real muon)")
 fig.tight_layout(w_pad=2)
 fig.savefig(a.out / "slide78_base_tail.png", bbox_inches="tight", pad_inches=0.05)
+
+# ---- slide 8: px shape of the tail, real vs r = 4 vs beta = 3 -------------------------------------------------------
+fig, ax = plt.subplots(figsize=(8.9, 4.4))
+bins = np.linspace(4, 12, 33)
+for px, kw, lab in ((real_px, dict(color=REF, alpha=0.45), "real tail"),
+                    (TAIL_PX["beta=3"], dict(histtype="step", color=NF, lw=2.5), "NF, tilt β = 3"),
+                    (TAIL_PX["r=4"], dict(histtype="step", color=HI, lw=2.5, ls="--"), "NF, |z_lat| > 4")):
+    ax.hist(px, bins, weights=np.full(len(px), 1 / len(px) / np.diff(bins)[0]), label=f"{lab} ({len(px):_})".replace("_", " "), **kw)
+    ax.axvline(np.median(px), color=kw["color"], lw=1, ls=kw.get("ls", "-"))
+ax.set_xlim(4, 12)
+ax.set_xlabel("px (GeV/c), samples with |zpx| > 2.5")
+ax.set_ylabel("fraction per GeV/c\n(of own total)")
+ax.legend(loc="upper right", frameon=False)
+fig.savefig(a.out / "slide8_px_shape.png", bbox_inches="tight", pad_inches=0.05)
