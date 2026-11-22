@@ -130,7 +130,7 @@ bins = np.linspace(4, 12, 33)
 for px, kw, lab in ((real_px, dict(color=REF, alpha=0.45), "real tail"),
                     (TAIL_PX["beta=3"], dict(histtype="step", color=NF, lw=2.5), "NF, tilt β = 3"),
                     (TAIL_PX["r=4"], dict(histtype="step", color=HI, lw=2.5, ls="--"), "NF, |z_lat| > 4")):
-    ax.hist(px, bins, weights=np.full(len(px), 1 / len(px) / np.diff(bins)[0]), label=f"{lab} ({len(px):_})".replace("_", " "), **kw)
+    ax.hist(px, bins, weights=np.full(len(px), 1 / len(px) / np.diff(bins)[0]), label=lab + " (" + f"{len(px):,}".replace(",", " ") + ")", **kw)
     ax.axvline(np.median(px), color=kw["color"], lw=1, ls=kw.get("ls", "-"))
 ax.set_xlim(4, 12)
 ax.set_xlabel("px (GeV/c), samples with |zpx| > 2.5")
