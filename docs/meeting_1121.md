@@ -191,23 +191,26 @@ unlikely the real rows are under the flow.
 ## C. Distribution error against distance (CM slide 8, replaces the NLL figure)
 
 Script `plots/cm_swd_vs_d.py`, output `cm/slide8_swd_vs_distance.{png,pdf}` and `cm/swd_vs_d.json`. Samples the saved
-`flow.pt` (10^7 draws, seeds 3000-3009); trains nothing. NLL is a likelihood, not a density error, so it is dropped.
+`flow.pt` (10^7 draws, seeds 3000-3009); trains nothing. NLL is a likelihood, not a distribution error, so it is dropped.
+
+The core is `diagnostics.error_vs_distance(real, gen, d_real, d_gen, edges)`: it takes arrays only, so any generator
+can be scored the same way. Per distance band it returns the sliced Wasserstein-1 (500 fixed directions) between half
+of the real rows and an equal-size generated subset, and the real-vs-real floor, over 200 random splits.
 
 Data trace: afterMS npz (mu-, 19 787 rows, no duplicates) -> features `x, y, tx, ty, log p` -> physical
-`(x, y, px, py, pz)` (asserted equal to the raw columns) -> robust scale (median, 1.4826 MAD of train rows) -> groups:
-held-out centre, validation shell, and the five fixed `d_train` bands of the real test rows from `result.json`.
+`(x, y, px, py, pz)` (asserted equal to the raw columns) -> robust scale (median, 1.4826 MAD of train rows). Real side:
+all 3 981 held-out rows (val_interp, shell, test). NF side: samples in the centre kept with probability 10 %, the
+hold-out rate there, so both sides describe the same population. Distance: `d_train` (5th-nearest train row). Eight
+equal-count bands of the real held-out distances. Vertical line: 95th percentile of validation-row distances (0.69);
+the maximum (9.9) is one isolated centre row.
 
-- SW: sliced Wasserstein-1 over 500 fixed directions of the 5-D scaled state, half of the real rows vs an equal-size
-  NF subset, 200 random splits; floor = the same statistic between the two real halves. Robust-scaled units, not m or
-  GeV/c. Position-only and momentum-only versions in the JSON.
-- Mass: `Q/P` (NF fraction / real fraction of the group) with binomial log-delta 68 % intervals, and `Q - P`.
-
-- VERIFIED: 41 of 50 000 and the per-band counts of `result.json` are reproduced; physical coordinates match the raw
-  file; a generator without tail is flagged as missing mass; SW detects a shift and a sign flip of a correlation with
-  unchanged marginals (`tests/test_diagnostics.py`); two runs give the same JSON.
-- PROVISIONAL: robust scale, 500 directions, 200 splits; x, y in m comes from the afterMS audit
-  (`ship_adaptive_muon_bg/docs/investigations/muon_weight_provenance.md`), while the `loop.features` docstring says cm.
-- OPEN: all rows are unweighted, in training and in this comparison. The stored `w` has five values; the 817 rows with
-  w > 300 carry 76 % of the weight and the weighted ESS is 1 221 of 19 787 (71 in the test region).
-- Check: the last band's SW is driven by NF samples with p up to 1e7 GeV/c and |x| up to 56 m; look at them before
-  quoting a number for that band.
+- VERIFIED: distances of test rows equal `samples.npz`; physical coordinates match the raw file; SW detects a shift,
+  a correlation flip with equal marginals, and an error that appears only far out (`tests/test_diagnostics.py`).
+- Finding: the error is already 3x the floor in the nearest band. 20-38 % of the real rows in the three nearest bands
+  are shell or tail muons (|zpx| > 2); the NF has 4-6 %. In 5-D those muons sit close to training rows, yet the NF never
+  learned px beyond the cut. A safe region defined by 5-D distance alone would include them.
+- PROVISIONAL: robust scale, 500 directions, 200 splits, 8 bands, k = 5; x, y in m per the afterMS audit
+  (`ship_adaptive_muon_bg/docs/investigations/muon_weight_provenance.md`; the `loop.features` docstring says cm).
+- OPEN: all rows are unweighted, in training and here. The stored `w` has five values; the 817 rows with w > 300 carry
+  76 % of the weight and the weighted ESS is 1 221 of 19 787 (71 in the test region).
+- Check: the last band contains NF samples with p up to 1e7 GeV/c and |x| up to 56 m.

@@ -58,3 +58,15 @@ def test_sliced_wasserstein_shift_joint_and_seed():
     assert sw(pos, neg) > 4 * sw(pos, ref)
     with pytest.raises(ValueError):
         sw(a, b[:-1])
+
+
+def test_error_vs_distance_floor_and_shift():
+    from ship_nf.diagnostics import error_vs_distance
+
+    rng = np.random.default_rng(2)
+    real, gen = rng.standard_normal((4000, 3)), rng.standard_normal((4000, 3))
+    d = np.abs(real[:, 0])
+    gen[np.abs(gen[:, 0]) > 1, 1] += 1.0  # generator wrong only far out
+    near, far = error_vs_distance(real, gen, d, np.abs(gen[:, 0]), [0, 1, np.inf], splits=20)
+    assert near["error"][1] < 1.5 * near["floor"][2]
+    assert far["error"][1] > 3 * far["floor"][2]

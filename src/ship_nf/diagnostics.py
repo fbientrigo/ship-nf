@@ -113,3 +113,23 @@ def sliced_wasserstein(a: np.ndarray, b: np.ndarray, n_proj: int = 500, seed: in
     th = np.random.default_rng(seed).standard_normal((n_proj, a.shape[1]))
     th /= np.linalg.norm(th, axis=1, keepdims=True)
     return float(np.abs(np.sort(a @ th.T, 0) - np.sort(b @ th.T, 0)).mean())
+
+
+def error_vs_distance(real, gen, d_real, d_gen, edges, splits=200, seed=0):
+    """Distribution error of any generator per distance band: for each ``[lo, hi)`` band of ``edges``, the sliced
+    Wasserstein between half of the real rows and an equal-size random subset of the generated rows of that band,
+    and the same statistic between the two real halves (the finite-sample floor). Median and 16-84 % over ``splits``.
+    A band with fewer generated rows than half its real rows gets ``None``. Inputs are already scaled arrays."""
+    rng, out = np.random.default_rng(seed), []
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        r, g = real[(d_real >= lo) & (d_real < hi)], gen[(d_gen >= lo) & (d_gen < hi)]
+        n, row = len(r) // 2, {"lo": float(lo), "hi": float(hi), "real": len(r), "gen": len(g)}
+        if len(g) >= n > 0:
+            e, f = [], []
+            for _ in range(splits):
+                p = rng.permutation(len(r))
+                e.append(sliced_wasserstein(r[p[:n]], g[rng.choice(len(g), n, replace=False)]))
+                f.append(sliced_wasserstein(r[p[:n]], r[p[n:2 * n]]))
+            row.update(error=np.quantile(e, [0.16, 0.5, 0.84]).tolist(), floor=np.quantile(f, [0.16, 0.5, 0.84]).tolist())
+        out.append(row)
+    return out
