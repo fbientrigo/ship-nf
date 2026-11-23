@@ -34,3 +34,27 @@ def test_coverage_full_vs_missing_tail():
 
 def test_tail_mass_ratio():
     assert tail_mass_ratio(np.r_[True, False, False, False], np.r_[True, True, False, False]) == pytest.approx(0.5)
+
+
+def test_sliced_wasserstein_shift_joint_and_seed():
+    from scipy.stats import wasserstein_distance
+
+    from ship_nf.diagnostics import sliced_wasserstein as sw
+
+    rng = np.random.default_rng(1)
+    n, d = 2000, 5
+    a, b = rng.standard_normal((n, d)), rng.standard_normal((n, d))
+    null = sw(a, b)
+    assert sw(a, b) == null  # fixed seed: same directions, same value
+    shifted = b + 0.5 * np.eye(d)[0]  # 0.5 sigma shift of one coordinate
+    assert sw(a, shifted) > 2 * null
+    # joint change with identical marginals: correlation +0.9 vs -0.9 in 2-D
+    z = rng.standard_normal((2, n, 2))
+    pos = np.c_[z[0, :, 0], 0.9 * z[0, :, 0] + np.sqrt(1 - 0.81) * z[0, :, 1]]
+    neg = np.c_[z[1, :, 0], -0.9 * z[1, :, 0] + np.sqrt(1 - 0.81) * z[1, :, 1]]
+    ref = np.c_[z[1, :, 0], 0.9 * z[1, :, 0] + np.sqrt(1 - 0.81) * z[1, :, 1]]
+    marg = max(wasserstein_distance(pos[:, j], neg[:, j]) for j in range(2))
+    assert marg < 0.1  # marginals look the same
+    assert sw(pos, neg) > 4 * sw(pos, ref)
+    with pytest.raises(ValueError):
+        sw(a, b[:-1])

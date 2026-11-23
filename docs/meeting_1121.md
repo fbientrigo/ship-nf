@@ -187,3 +187,27 @@ unlikely the real rows are under the flow.
    accumulate synthetic rows across rounds instead of replacing them.
 5. Figure B: 11 of 41 NF exterior samples lie beyond every real distance. Look at them in 5D before reading the last
    band as tail coverage.
+
+## C. Distribution error against distance (CM slide 8, replaces the NLL figure)
+
+Script `plots/cm_swd_vs_d.py`, output `cm/slide8_swd_vs_distance.{png,pdf}` and `cm/swd_vs_d.json`. Samples the saved
+`flow.pt` (10^7 draws, seeds 3000-3009); trains nothing. NLL is a likelihood, not a density error, so it is dropped.
+
+Data trace: afterMS npz (mu-, 19 787 rows, no duplicates) -> features `x, y, tx, ty, log p` -> physical
+`(x, y, px, py, pz)` (asserted equal to the raw columns) -> robust scale (median, 1.4826 MAD of train rows) -> groups:
+held-out centre, validation shell, and the five fixed `d_train` bands of the real test rows from `result.json`.
+
+- SW: sliced Wasserstein-1 over 500 fixed directions of the 5-D scaled state, half of the real rows vs an equal-size
+  NF subset, 200 random splits; floor = the same statistic between the two real halves. Robust-scaled units, not m or
+  GeV/c. Position-only and momentum-only versions in the JSON.
+- Mass: `Q/P` (NF fraction / real fraction of the group) with binomial log-delta 68 % intervals, and `Q - P`.
+
+- VERIFIED: 41 of 50 000 and the per-band counts of `result.json` are reproduced; physical coordinates match the raw
+  file; a generator without tail is flagged as missing mass; SW detects a shift and a sign flip of a correlation with
+  unchanged marginals (`tests/test_diagnostics.py`); two runs give the same JSON.
+- PROVISIONAL: robust scale, 500 directions, 200 splits; x, y in m comes from the afterMS audit
+  (`ship_adaptive_muon_bg/docs/investigations/muon_weight_provenance.md`), while the `loop.features` docstring says cm.
+- OPEN: all rows are unweighted, in training and in this comparison. The stored `w` has five values; the 817 rows with
+  w > 300 carry 76 % of the weight and the weighted ESS is 1 221 of 19 787 (71 in the test region).
+- Check: the last band's SW is driven by NF samples with p up to 1e7 GeV/c and |x| up to 56 m; look at them before
+  quoting a number for that band.

@@ -97,3 +97,19 @@ def tail_mass_ratio(in_region_model: np.ndarray, in_region_data: np.ndarray) -> 
     """
     pd = float(np.mean(in_region_data))
     return float(np.mean(in_region_model) / pd) if pd > 0 else float("nan")
+
+
+def sliced_wasserstein(a: np.ndarray, b: np.ndarray, n_proj: int = 500, seed: int = 0) -> float:
+    """Sliced Wasserstein-1 distance between two equal-size samples ``a``, ``b`` of shape ``(n, d)``.
+
+    Both samples are projected on the same ``n_proj`` random unit directions of the full ``d``-D space (fixed by
+    ``seed``); the result is the mean over directions of the exact 1-D W1 of the projections, which for equal sizes is
+    the mean absolute difference of the sorted values. Because every direction mixes all coordinates, a change in the
+    dependence between coordinates is seen even when every marginal is unchanged. Units are those of the inputs.
+    Equal sizes are required so that the finite-sample bias is the same for every comparison made with it.
+    """
+    if a.shape != b.shape:
+        raise ValueError(f"equal-size samples required, got {a.shape} and {b.shape}")
+    th = np.random.default_rng(seed).standard_normal((n_proj, a.shape[1]))
+    th /= np.linalg.norm(th, axis=1, keepdims=True)
+    return float(np.abs(np.sort(a @ th.T, 0) - np.sort(b @ th.T, 0)).mean())
