@@ -227,3 +227,29 @@ Five error measures, all per band with the same real/NF samples:
 - OPEN: all rows are unweighted, in training and here. The stored `w` has five values; the 817 rows with w > 300 carry
   76 % of the weight and the weighted ESS is 1 221 of 19 787 (71 in the test region).
 - Check: the last band contains NF samples with p up to 1e7 GeV/c and |x| up to 56 m.
+
+## D. Backup: extrapolation (A), representation (B), tail scarcity (C)
+
+Script `plots/cm_backup_abc.py` (trains 18 flows, ~10 min CPU), outputs in `cm/backup/`: `abc.json`, `abc_runs.csv`,
+`backup1_A_vs_B`, `backup2_C_tail_scarcity`, `backup3_error_vs_distance_A_B` (`.png`, `.pdf`).
+
+Why a new split: the old checkpoint was trained on 90 % of all centre rows, so any full-distribution test set overlaps
+its training data. One fixed split instead (seed 0): 5 936 test (30 %, full distribution, 487 tail rows = 8.20 %),
+1 978 validation (report only, nothing is selected), 11 873 pool. Regions use px median/MAD of the pool only
+(1.4617, 1.1547 GeV/c; old: 1.4625, 1.1461 over all rows). Pool: 10 562 centre, 1 311 outside |z| > 2, 930 tail.
+
+Training sets (natural composition, no oversampling, same architecture, 400 full-batch epochs, seeds 1-3):
+A = pool centre (10 562); C(f) = centre + fraction f of the outside rows (f = 0.1, 0.25, 0.5); B = whole pool
+(11 873); B_matched = random 10 562 rows of the whole pool (size of A, ~815 tail rows).
+
+- VERIFIED: two runs give the same `abc.json` (sha256 3ece8940...; 4c3cc0ef... after adding two fields, same numbers);
+  test rows never enter fitting or scaling.
+- Result: tail mass q/p (median of seeds) A 0.006, C0.1 0.12, C0.25 0.26, C0.5 0.50, B 0.89, B_matched 0.90. The
+  global and tail SW of B and B_matched are close to each other and to the floor; A's are far above.
+- Reading C: C keeps the natural composition, so its training sets have a tail share of f x 7.8 %. Against its own
+  training share the flow is at 0.93-1.13 in every run: the mass follows what it is given even with ~100 tail rows.
+  What needs more tail rows is the tail shape: SW 1.3 (97 rows) -> 0.6 (234) -> 0.33 (466) -> 0.33 (930), floor 0.20.
+  A target-preserving C (tail rows weighted by 1/f) needs a weighted loss in `flow.fit`; not done.
+- PROVISIONAL: one split, three seeds, 10^6 samples per flow, robust scaling (std scaling gives the same ordering).
+- OPEN: unweighted (in the test set the tail holds 8.2 % of rows but 4.8 % of the weight). Single runs have a tail SW
+  of 10 to 3.6e9 from a few extreme NF samples; medians over seeds are reported and those runs are marked.
