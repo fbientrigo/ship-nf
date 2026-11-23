@@ -115,21 +115,34 @@ def sliced_wasserstein(a: np.ndarray, b: np.ndarray, n_proj: int = 500, seed: in
     return float(np.abs(np.sort(a @ th.T, 0) - np.sort(b @ th.T, 0)).mean())
 
 
-def error_vs_distance(real, gen, d_real, d_gen, edges, splits=200, seed=0):
-    """Distribution error of any generator per distance band: for each ``[lo, hi)`` band of ``edges``, the sliced
-    Wasserstein between half of the real rows and an equal-size random subset of the generated rows of that band,
-    and the same statistic between the two real halves (the finite-sample floor). Median and 16-84 % over ``splits``.
-    A band with fewer generated rows than half its real rows gets ``None``. Inputs are already scaled arrays."""
+def knn_two_sample_accuracy(a: np.ndarray, b: np.ndarray, k: int = 5) -> float:
+    """Leave-one-out ``k``-NN classifier accuracy at telling equal-size samples ``a`` and ``b`` apart (a classifier
+    two-sample test). 0.5 = indistinguishable, 1 = fully separated. Ties count as wrong."""
+    from scipy.spatial import cKDTree
+
+    x, y = np.vstack([a, b]), np.r_[np.zeros(len(a)), np.ones(len(b))]
+    nb = cKDTree(x).query(x, k + 1)[1][:, 1:]
+    return float(((y[nb].mean(1) > 0.5) == (y == 1)).mean() * 0.5 + ((y[nb].mean(1) < 0.5) == (y == 0)).mean() * 0.5)
+
+
+def error_vs_distance(real, gen, d_real, d_gen, edges, metrics, splits=200, seed=0):
+    """Distribution error of any generator per distance band. For each ``[lo, hi)`` band of ``edges`` and each
+    ``metrics[name](x, y)``: the metric between half of the real rows and an equal-size random subset of the generated
+    rows of that band (``name``), and between the two real halves (``name_floor``, the finite-sample floor). Median and
+    16-84 % over ``splits``. A band with fewer generated rows than half its real rows gets no metric values."""
     rng, out = np.random.default_rng(seed), []
     for lo, hi in zip(edges[:-1], edges[1:]):
         r, g = real[(d_real >= lo) & (d_real < hi)], gen[(d_gen >= lo) & (d_gen < hi)]
         n, row = len(r) // 2, {"lo": float(lo), "hi": float(hi), "real": len(r), "gen": len(g)}
         if len(g) >= n > 0:
-            e, f = [], []
+            v = {k: ([], []) for k in metrics}
             for _ in range(splits):
                 p = rng.permutation(len(r))
-                e.append(sliced_wasserstein(r[p[:n]], g[rng.choice(len(g), n, replace=False)]))
-                f.append(sliced_wasserstein(r[p[:n]], r[p[n:2 * n]]))
-            row.update(error=np.quantile(e, [0.16, 0.5, 0.84]).tolist(), floor=np.quantile(f, [0.16, 0.5, 0.84]).tolist())
+                A, B, G = r[p[:n]], r[p[n:2 * n]], g[rng.choice(len(g), n, replace=False)]
+                for k, m in metrics.items():
+                    v[k][0].append(m(A, G))
+                    v[k][1].append(m(A, B))
+            for k, (e, f) in v.items():
+                row[k], row[k + "_floor"] = np.quantile(e, [0.16, 0.5, 0.84]).tolist(), np.quantile(f, [0.16, 0.5, 0.84]).tolist()
         out.append(row)
     return out

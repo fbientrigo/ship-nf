@@ -61,12 +61,14 @@ def test_sliced_wasserstein_shift_joint_and_seed():
 
 
 def test_error_vs_distance_floor_and_shift():
-    from ship_nf.diagnostics import error_vs_distance
+    from ship_nf.diagnostics import error_vs_distance, knn_two_sample_accuracy, sliced_wasserstein
 
     rng = np.random.default_rng(2)
     real, gen = rng.standard_normal((4000, 3)), rng.standard_normal((4000, 3))
     d = np.abs(real[:, 0])
     gen[np.abs(gen[:, 0]) > 1, 1] += 1.0  # generator wrong only far out
-    near, far = error_vs_distance(real, gen, d, np.abs(gen[:, 0]), [0, 1, np.inf], splits=20)
-    assert near["error"][1] < 1.5 * near["floor"][2]
-    assert far["error"][1] > 3 * far["floor"][2]
+    m = {"sw": sliced_wasserstein, "c2st": knn_two_sample_accuracy}
+    near, far = error_vs_distance(real, gen, d, np.abs(gen[:, 0]), [0, 1, np.inf], m, splits=20)
+    assert near["sw"][1] < 1.5 * near["sw_floor"][2]
+    assert far["sw"][1] > 3 * far["sw_floor"][2]
+    assert abs(near["c2st"][1] - 0.5) < 0.05 and far["c2st"][1] > 0.6

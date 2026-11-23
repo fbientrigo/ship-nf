@@ -10,7 +10,9 @@ the afterMS mu- sample minus a random 10 % (val_interp); validation shell ``2 < 
 - Error per equal-count ``d`` band: ``diagnostics.error_vs_distance`` on ``(x, y, px, py, pz)`` scaled by median and
   1.4826 MAD of train rows, with the real-vs-real floor. A distance between distributions in those robust units, not an
   error in m or GeV/c. Rows unweighted (``w`` OPEN; training was unweighted too).
-- Vertical line: 95th percentile of ``d`` over validation rows (the maximum, 9.9, is one isolated centre row)::
+- Five error measures (``METRICS`` and the mass ratio), each drawn twice: marks at the last training / validation
+  distance (``max``) or at their 95th percentiles (``p95``). Training rows' distance is to their 5th-nearest *other*
+  train row. Writes ``slide8_<metric>_<max|p95>.{png,pdf}`` and ``error_vs_d.json``::
 
     .venv/bin/python plots/cm_swd_vs_d.py docs/meeting_1121 --out docs/meeting_1121/cm
 """
@@ -24,7 +26,9 @@ import numpy as np
 import torch
 
 from ship_nf import flow
-from ship_nf.diagnostics import error_vs_distance
+from scipy.spatial import cKDTree
+
+from ship_nf.diagnostics import coverage, error_vs_distance, knn_two_sample_accuracy, sliced_wasserstein
 from ship_nf.extrapolation import knn_distance
 from ship_nf.tail_demo import INTERP, K_TRAIN, KNN, load, z_of
 
@@ -63,7 +67,9 @@ dist = lambda g: knn_distance((g - mu) / sd, (tr - mu) / sd, KNN)
 held = lab != "train"
 real, d_real = f[held], dist(f[held])
 assert np.allclose(d_real[lab[held] == "test"], np.load(a.result / "samples.npz")["d_train_ref"])
-d_val95 = float(np.quantile(d_real[lab[held] != "test"], 0.95))  # max is set by a few isolated centre rows
+d_val = d_real[lab[held] != "test"]
+d_tr = cKDTree((tr - mu) / sd).query((tr - mu) / sd, KNN + 1)[0][:, -1]  # 5th-nearest *other* train row
+MARKS = {"max": (d_tr.max(), d_val.max(), "last"), "p95": (np.quantile(d_tr, 0.95), np.quantile(d_val, 0.95), "95 % of")}
 
 rng, gen = np.random.default_rng(5), []
 for i in range(10):
@@ -74,31 +80,52 @@ gen = np.concatenate(gen)
 d_gen = dist(gen)
 
 edges = np.r_[0, np.quantile(d_real, np.linspace(0, 1, 9)[1:-1]), np.inf]
-bands = error_vs_distance(X(real), X(gen), d_real, d_gen, edges, seed=11)
+px_gev = lambda u, v: float(np.abs(np.sort(u[:, 2]) - np.sort(v[:, 2])).mean() * scale[2])
+METRICS = {  # name: (function on scaled equal-size samples, y label, log y)
+    "sw": (sliced_wasserstein, "distribution error, sliced W1\n(x, y, px, py, pz; robust units)", True),
+    "classifier": (knn_two_sample_accuracy, "classifier accuracy, NF vs real\n(0.5 = cannot tell apart)", False),
+    "px_shift": (px_gev, "px distribution shift, W1 (GeV/c)", True),
+    "uncovered": (lambda u, v: 1 - coverage(u, v), "real muons with no NF muon\nnearby (fraction)", False),
+}
+bands = error_vs_distance(X(real), X(gen), d_real, d_gen, edges, {k: v[0] for k, v in METRICS.items()}, seed=11)
 for b in bands:
     m = (d_real >= b["lo"]) & (d_real < b["hi"])
-    b.update(d_median=float(np.median(d_real[m])), test_share=float((lab[held][m] == "test").mean()))
-out = {"d_val95": d_val95, "nf_kept": len(gen), "real_heldout": len(real), "bands": bands,
-       "scale": {"median": med.tolist(), "robust_sigma": scale.tolist()}}
+    P, Q = b["real"] / len(real), b["gen"] / len(gen)  # same population on both sides (centre thinned to 10 %)
+    s_ = np.sqrt((1 - P) / (len(real) * P) + (1 - Q) / (len(gen) * Q))
+    b.update(d_median=float(np.median(d_real[m])), test_share=float((lab[held][m] == "test").mean()),
+             mass=[Q / P * np.exp(-s_), Q / P, Q / P * np.exp(s_)])
+out = {"marks": {k: [float(v[0]), float(v[1])] for k, v in MARKS.items()}, "nf_kept": len(gen), "real_heldout": len(real),
+       "bands": bands, "scale": {"median": med.tolist(), "robust_sigma": scale.tolist()}}
 a.out.mkdir(parents=True, exist_ok=True)
-(a.out / "swd_vs_d.json").write_text(json.dumps(out, indent=1))
+(a.out / "error_vs_d.json").write_text(json.dumps(out, indent=1))
+METRICS["mass"] = (None, "NF muons / real muons in the band\n(1 = right amount)", True)
 
-fig, ax = plt.subplots(figsize=(8.9, 4.8))
 x = np.array([b["d_median"] for b in bands])
-for key, c, lbl in (("error", NF, "NF vs held-out real muons"), ("floor", REF, "real vs real (statistical floor)")):
-    y = np.array([b[key] for b in bands])
-    ax.fill_between(x, y[:, 0], y[:, 2], color=c, alpha=0.2, lw=0)
-    ax.plot(x, y[:, 1], "o-", color=c, lw=2.5, ms=7, label=lbl)
-ax.axvline(d_val95, color=HI, lw=2)
-ax.axvspan(x.min() * 0.8, d_val95, color=HI, alpha=0.06, lw=0)
-ax.text(d_val95 * 0.93, 0.97, "95 % of\nvalidation", transform=ax.get_xaxis_transform(), ha="right", va="top", color=HI)
-ax.text(d_val95 * 1.07, 0.97, "mostly\nunseen test", transform=ax.get_xaxis_transform(), ha="left", va="top", color=HI)
-ax.set_xscale("log")
-ax.set_yscale("log")
-ax.set_xlim(x.min() * 0.8, None)
-ax.set_xlabel("distance to the training muons (5th nearest)")
-ax.set_ylabel("distribution error, sliced W1\n(x, y, px, py, pz; robust units)")
-ax.legend(loc="upper left", frameon=False)
-for ext in ("png", "pdf"):
-    fig.savefig(a.out / f"slide8_swd_vs_distance.{ext}", bbox_inches="tight", pad_inches=0.05)
-print(json.dumps(out, indent=1))
+for name, (_, ylabel, logy) in METRICS.items():
+    for mark, (d_t, d_v, word) in MARKS.items():
+        fig, ax = plt.subplots(figsize=(8.9, 4.8))
+        if name == "mass":
+            y = np.array([b["mass"] for b in bands])
+            ax.fill_between(x, y[:, 0], y[:, 2], color=NF, alpha=0.2, lw=0)
+            ax.plot(x, y[:, 1], "o-", color=NF, lw=2.5, ms=7, label="NF vs held-out real muons")
+            ax.axhline(1, color=REF, ls="--", lw=1.5, label="right amount")
+        else:
+            for key, c, lbl in ((name, NF, "NF vs held-out real muons"), (name + "_floor", REF, "real vs real (statistical floor)")):
+                y = np.array([b[key] for b in bands])
+                ax.fill_between(x, y[:, 0], y[:, 2], color=c, alpha=0.2, lw=0)
+                ax.plot(x, y[:, 1], "o-", color=c, lw=2.5, ms=7, label=lbl)
+        tf = ax.get_xaxis_transform()
+        for dv, c, ls, txt, k, ha in ((d_t, REF, "--", f"{word}\ntraining", 1.05, "left"), (d_v, HI, "-", f"{word}\nvalidation", 0.95, "right")):
+            ax.axvline(dv, color=c, ls=ls, lw=2)  # training lies right of validation here: labels on the outer sides
+            ax.text(dv * k, 0.03, txt, transform=tf, ha=ha, va="bottom", color=c, bbox=dict(fc="white", ec="none", alpha=0.8, pad=1))
+        ax.set_xscale("log")
+        if logy:
+            ax.set_yscale("log")
+        ax.set_xlim(x.min() * 0.8, max(x.max(), d_t, d_v) * 1.6)
+        ax.set_xlabel("distance to the training muons (5th nearest)")
+        ax.set_ylabel(ylabel)
+        ax.legend(loc="upper left", frameon=False)
+        for ext in ("png", "pdf"):
+            fig.savefig(a.out / f"slide8_{name}_{mark}.{ext}", bbox_inches="tight", pad_inches=0.05)
+        plt.close(fig)
+print(json.dumps({k: v for k, v in out.items() if k != "bands"}, indent=1))

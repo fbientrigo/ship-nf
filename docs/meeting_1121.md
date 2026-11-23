@@ -190,7 +190,7 @@ unlikely the real rows are under the flow.
 
 ## C. Distribution error against distance (CM slide 8, replaces the NLL figure)
 
-Script `plots/cm_swd_vs_d.py`, output `cm/slide8_swd_vs_distance.{png,pdf}` and `cm/swd_vs_d.json`. Samples the saved
+Script `plots/cm_swd_vs_d.py`, output `cm/slide8_<metric>_<max|p95>.{png,pdf}` (10 figures) and `cm/error_vs_d.json`. Samples the saved
 `flow.pt` (10^7 draws, seeds 3000-3009); trains nothing. NLL is a likelihood, not a distribution error, so it is dropped.
 
 The core is `diagnostics.error_vs_distance(real, gen, d_real, d_gen, edges)`: it takes arrays only, so any generator
@@ -202,10 +202,23 @@ Data trace: afterMS npz (mu-, 19 787 rows, no duplicates) -> features `x, y, tx,
 all 3 981 held-out rows (val_interp, shell, test). NF side: samples in the centre kept with probability 10 %, the
 hold-out rate there, so both sides describe the same population. Distance: `d_train` (5th-nearest train row). Eight
 equal-count bands of the real held-out distances. Vertical line: 95th percentile of validation-row distances (0.69);
-the maximum (9.9) is one isolated centre row.
+the maximum (9.9) is one isolated centre row. Each figure exists twice: `max` marks the last training row (14.5,
+distance to its 5th-nearest *other* train row) and the last validation row (9.9); `p95` marks their 95th percentiles
+(0.77, 0.69).
+
+Five error measures, all per band with the same real/NF samples:
+
+| file | measure | floor | what it says |
+|---|---|---|---|
+| `sw` | sliced W1 of (x, y, px, py, pz), robust units | real vs real | how far apart the distributions are, all coordinates and correlations together |
+| `classifier` | leave-one-out 5-NN accuracy, NF vs real | 0.5 | whether a classifier can tell NF muons from real ones |
+| `px_shift` | W1 of px, GeV/c | real vs real | the error in the variable that defines the tail, in physical units |
+| `uncovered` | 1 - coverage (Naeem et al. 2020) | real vs real | the fraction of real muons with no NF muon nearby |
+| `mass` | NF / real muons in the band | 1 | whether the NF puts the right amount of muons at that distance |
 
 - VERIFIED: distances of test rows equal `samples.npz`; physical coordinates match the raw file; SW detects a shift,
-  a correlation flip with equal marginals, and an error that appears only far out (`tests/test_diagnostics.py`).
+  a correlation flip with equal marginals, and an error that appears only far out; the classifier is at 0.5 for equal
+  samples and above 0.6 for the far shift (`tests/test_diagnostics.py`). Two runs give the same JSON.
 - Finding: the error is already 3x the floor in the nearest band. 20-38 % of the real rows in the three nearest bands
   are shell or tail muons (|zpx| > 2); the NF has 4-6 %. In 5-D those muons sit close to training rows, yet the NF never
   learned px beyond the cut. A safe region defined by 5-D distance alone would include them.
