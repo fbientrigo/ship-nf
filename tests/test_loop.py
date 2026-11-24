@@ -1,5 +1,6 @@
 """Demo-loop pieces on A's side: features, U, tilt, the flow, the 0.3 report reader. No FairShip."""
 
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -8,6 +9,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+import torch
 
 pytest.importorskip("torch")
 from ship_nf import flow  # noqa: E402
@@ -80,3 +82,16 @@ def test_observed_keeps_counts_and_drops_ubt_and_unevaluated():
     from ship_nf.loop import observed
     n, y = observed([{"counts": {"AIR": (20, 0), "HE": (20, 11), "UBT": (20, 4)}}, {"counts": {}}])
     assert n.tolist() == [40, 0] and y.tolist() == [11, 0]  # a proposal with no rows adds no trials
+
+
+def test_propose_saves_checkpoint_that_reproduces_log_q(tmp_path):
+    propose(FIX, [], tmp_path / "d", m=3, seed=3, n_train=64, n_cand=100)
+    g = json.loads((tmp_path / "d" / "manifest.json").read_text())["generator"]
+    ck = tmp_path / "d" / g["checkpoint"]["file"]
+    assert hashlib.sha256(ck.read_bytes()).hexdigest() == g["checkpoint"]["sha256"]
+    model = flow.Flow(5)
+    model.load_state_dict(torch.load(ck))
+    rows = pq.read_table(tmp_path / "d" / "proposals.parquet").to_pylist()
+    with torch.no_grad():
+        lq = model.log_prob(torch.as_tensor(features(rows), dtype=torch.float32)).numpy()
+    assert np.allclose(lq, g["log_q_flow"], atol=1e-3)

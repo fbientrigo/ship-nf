@@ -38,6 +38,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from ship_nf import flow
 from ship_nf.diagnostics import kish_ess
@@ -175,6 +176,14 @@ def propose(problem_dir: Path, history: list[tuple[Path, Path]], out: Path, m: i
                  "rows": len(rows), "distinct_progenitors": len(progenitors), "evaluated_proposals": len(evaluated),
                  "final_nll": losses[-1], "candidates_physical": int(ok.sum()),
                  "u_selected": [float(u_cand[i]) for i in best]}
+    # Checkpoint + per-state log density, so q can be recomputed later. ``flow.sample(n_cand, seed)`` on this checkpoint
+    # regenerates every candidate. log_q_flow is the flow's density, NOT the density of the top-m selection.
+    out.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), out / "flow.pt")
+    with torch.no_grad():
+        log_q = model.log_prob(torch.as_tensor(cand[best], dtype=torch.float32)).tolist()
+    generator.update({"checkpoint": {"file": "flow.pt", "sha256": hashlib.sha256((out / "flow.pt").read_bytes()).hexdigest()},
+                      "selection": "top_m_by_U", "log_q_flow": log_q, "log_q_space": list(FEATURES)})
     delivery_id = write_model_delivery(problem_dir, out, states, generator)
     return {"delivery_id": delivery_id, "states": len(states), "rows": len(rows), "distinct_progenitors": len(progenitors),
             "tilt_kish_ess": round(kish_ess(pi), 2),
