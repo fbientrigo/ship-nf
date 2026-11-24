@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import time
 from multiprocessing import Pool
@@ -51,7 +52,7 @@ import torch
 from ship_nf import flow, loop
 from ship_nf.tail_demo import load, px_of
 
-DATA = Path("/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz")
+DATA = Path(os.environ.get("SHIP_NF_AFTERMS", "/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz"))
 RULES = ("greedy", "greedy_mix", "thompson", "thompson_mix")  # "sample" and "mixture" dropped after run 1, see docs
 EPS, M, N_REAL, N_TRAIN, N_CAND = 0.2, 20, 20, 512, 2000
 DECOY, GOAL, ZP_MAX = (1.5, 2.0), 2.5, 10.0  # real afterMS mu- tail: zp max 9.66
@@ -93,7 +94,7 @@ def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
     torch.set_num_threads(1)
     d = load(DATA, 1)
     zp_of = lambda f: (px_of(f) - d["median"]) / d["sigma"]  # noqa: E731
-    pool = d["f"][d["lab"] == "train"]
+    pool = p0 = d["f"][d["lab"] == "train"]
     center, scale = pool.mean(0), pool.std(0)  # fixed standardisation for U, as loop.propose uses P0's
     rng = np.random.default_rng(seed)
     evaluated, out, untilted = [], [], None
@@ -104,8 +105,8 @@ def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
         pi = loop.h(u_pool / u_pool.max(), 2.0, 0.1)
         cand = fit_sample(pool, pi / pi.sum(), rng, s0)
         mix = rule.endswith("_mix")
-        if mix and (untilted is None or grow):
-            untilted = fit_sample(pool, None, rng, s0 + 500)
+        if mix and untilted is None:  # always P0, never the grown pool (run 2 refit it on the grown pool)
+            untilted = fit_sample(p0, None, rng, s0 + 500)
         n_mix = int(rng.binomial(M, EPS)) if mix else 0
         k = M - n_mix
         if rule.startswith("greedy"):
