@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 720" width="1220" height="720">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1.2 L 9 5 L 0 8.8 z" fill="#2d3945"/>
+    </marker>
+    <marker id="arr-cyan" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1.2 L 9 5 L 0 8.8 z" fill="#22a7e0"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1220" height="720" fill="#ffffff"/>
+  <rect x="10" y="10" width="1200" height="700" fill="#ffffff" stroke="#1b232c" stroke-width="1.4"/>
+  <rect x="26" y="22" width="7" height="7" fill="#2d3945"/>
+  <text x="39" y="29" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.2" fill="#556270">SHiP · muon DIS · Repo A (ship-nf)</text>
+  <text x="1194" y="29" text-anchor="end" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.2" fill="#556270">FairShip 26.10 (8a1cc53) · ship-exchange 0.3</text>
+  <line x1="10" y1="39" x2="1210" y2="39" stroke="#d2dae2" stroke-width="1"/>
+  <circle cx="31" cy="56" r="3" fill="#0f6e7c"/>
+  <text x="40" y="60" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.5" font-weight="700" fill="#0f6e7c">ARCHITECTURE  /  closed-loop generative proposal &amp; utility surrogate</text>
+  <text x="26" y="86" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="19" font-weight="700" fill="#1b232c">The Normalizing Flow proposes P2 states; FairShip judges; U(s) guides</text>
+  <rect x="26" y="102" width="848" height="392" fill="#f7f9fb" stroke="#d2dae2" stroke-width="1.2"/>
+  <text x="38" y="121" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.5" font-weight="700" fill="#0f6e7c">REPO A · ship-nf  (PyTorch, zero ROOT/FairShip imports)</text>
+  <rect x="926" y="102" width="268" height="392" fill="#f7f9fb" stroke="#d2dae2" stroke-width="1.2"/>
+  <text x="938" y="121" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.5" font-weight="700" fill="#2d3945">EXTERNAL ORACLE · Repo B</text>
+  <rect x="40" y="134" width="246" height="118" fill="#ffffff" stroke="#2d3945" stroke-width="1.35"/>
+  <rect x="278" y="134" width="8" height="8" fill="#2d3945"/>
+  <text x="52" y="156" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#1b232c">1. Source States (P2)</text>
+  <text x="52" y="174" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">TrainingProblem (states.parquet)</text>
+  <text x="52" y="190.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">s = (x, y, z, t, px, py, pz, pdg)</text>
+  <text x="52" y="207.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">φ(s) = (x, y, tx, ty, log |p|)</text>
+  <text x="52" y="223.5" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">exchange.py :: load_problem</text>
+  <text x="52" y="240.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">loop.py :: features</text>
+  <rect x="322" y="134" width="250" height="118" fill="#d8f3ff" stroke="#22a7e0" stroke-width="1.35"/>
+  <rect x="564" y="134" width="8" height="8" fill="#22a7e0"/>
+  <text x="334" y="156" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#1b232c">2. Utility Tilt &amp; Resample</text>
+  <text x="334" y="174" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">π_i ∝ h(U_i / max U)</text>
+  <text x="334" y="190.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">h(u) = [δ + (1 − δ) u]^α</text>
+  <text x="334" y="207.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Jittered resample (0.05 σ)</text>
+  <text x="334" y="223.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Optional untilted P0 copy (R4)</text>
+  <text x="334" y="240.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">loop.py :: h, propose</text>
+  <rect x="608" y="134" width="250" height="118" fill="#d8f3ff" stroke="#22a7e0" stroke-width="1.35"/>
+  <rect x="850" y="134" width="8" height="8" fill="#22a7e0"/>
+  <text x="620" y="156" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#1b232c">3. Normalizing Flow q_θ</text>
+  <text x="620" y="174" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">6-layer coupling flow in φ(s)</text>
+  <text x="620" y="190.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">main: RealNVP affine, N(0, I)</text>
+  <text x="620" y="207.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">exp/nsf-arm: Student-t₅ / RQS</text>
+  <text x="620" y="223.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Exact log q_θ(x) + std. Jacobian</text>
+  <text x="620" y="240.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">flow.py :: Flow, fit</text>
+  <rect x="40" y="294" width="200" height="144" fill="#ffffff" stroke="#94a0ac" stroke-width="1.35" stroke-dasharray="5,4"/>
+  <text x="52" y="316" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#2d3945">Offline Studies</text>
+  <text x="52" y="334" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Tail extrapolation vs d(x)</text>
+  <text x="52" y="350.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Self-consumption (MAD)</text>
+  <text x="52" y="367.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Planted target (GOAL/DECOY)</text>
+  <text x="52" y="383.5" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">extrapolation.py</text>
+  <text x="52" y="400.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">selfconsume.py</text>
+  <text x="52" y="416.5" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">tail_demo.py, planted.py</text>
+  <rect x="262" y="294" width="304" height="144" fill="#d8f3ff" stroke="#22a7e0" stroke-width="1.35"/>
+  <rect x="558" y="294" width="8" height="8" fill="#22a7e0"/>
+  <text x="274" y="316" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#1b232c">5. Quick Classifier U(s)</text>
+  <text x="274" y="334" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">U(s) ≈ P(≥ 1 good track | s)</text>
+  <text x="274" y="350.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Binomial logistic on quadratic φ(s)</text>
+  <text x="274" y="367.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Newton–Raphson + L2 ridge (UBT excl.)</text>
+  <text x="274" y="383.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Laplace cov. H⁻¹ → Thompson (planted)</text>
+  <text x="274" y="400.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">loop.py :: observed, fit_u, utility</text>
+  <text x="274" y="416.5" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">planted.py :: laplace_cov, trajectory</text>
+  <rect x="598" y="294" width="260" height="144" fill="#ffffff" stroke="#2d3945" stroke-width="1.35"/>
+  <rect x="850" y="294" width="8" height="8" fill="#2d3945"/>
+  <text x="610" y="316" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#1b232c">4. Filter &amp; Slot Selection</text>
+  <text x="610" y="334" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Support: on P2 plane, p ≥ 2 GeV/c</text>
+  <text x="610" y="350.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">(R1 audit: p ≤ 400 GeV/c beam)</text>
+  <text x="610" y="367.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Search slots: top-m by U(s)</text>
+  <text x="610" y="383.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Estimate slots (ε): random draw</text>
+  <text x="610" y="400.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">  from untilted P0 flow + log q</text>
+  <text x="610" y="416.5" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">exchange.py :: write_model_delivery</text>
+  <rect x="940" y="134" width="240" height="128" fill="#ffffff" stroke="#2d3945" stroke-width="1.35"/>
+  <rect x="1172" y="134" width="8" height="8" fill="#2d3945"/>
+  <text x="952" y="156" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="12.4" font-weight="700" fill="#1b232c">ship-fs-pipeline</text>
+  <text x="952" y="174" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Validates schema &amp; SHA-256</text>
+  <text x="952" y="190.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Injects MCTrack[0] at P2</text>
+  <text x="952" y="207.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Context: P2_ONLY_DIAGNOSTIC</text>
+  <text x="952" y="223.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">No upstream / companion hits</text>
+  <text x="952" y="240.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">evaluate.py, states_root.py</text>
+  <rect x="940" y="294" width="240" height="144" fill="#ffffff" stroke="#2d3945" stroke-width="1.35"/>
+  <rect x="1172" y="294" width="8" height="8" fill="#2d3945"/>
+  <text x="952" y="316" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="11.6" font-weight="700" fill="#1b232c">FairShip 26.10 (8a1cc53)</text>
+  <text x="952" y="334" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">prepareEvents.py (Pythia 6 DIS)</text>
+  <text x="952" y="350.5" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">run_simScript --NewMuDIS (G4)</text>
+  <text x="952" y="367.0" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.9" fill="#2d3945">ShipReco.py (GenFit tracks)</text>
+  <text x="952" y="383.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Joins DIS on muDIS_muEntry</text>
+  <text x="952" y="400.0" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Repeating DIS: y passes of n</text>
+  <text x="952" y="416.5" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#556270">Endpoint: r_demo_v0 (≥1 goodTrk)</text>
+  <line x1="286" y1="193" x2="320" y2="193" stroke="#2d3945" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="572" y1="193" x2="606" y2="193" stroke="#2d3945" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="733" y1="252" x2="733" y2="292" stroke="#2d3945" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="447" y1="294" x2="447" y2="254" stroke="#22a7e0" stroke-width="1.9" marker-end="url(#arr-cyan)"/>
+  <text x="455" y="278" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.2" font-weight="700" fill="#0f6e7c">guides</text>
+  <line x1="566" y1="366" x2="596" y2="366" stroke="#22a7e0" stroke-width="1.9" marker-end="url(#arr-cyan)"/>
+  <text x="581" y="358" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.5" font-weight="700" fill="#0f6e7c">U(s)</text>
+  <path d="M 858 342 L 900 342 L 900 198 L 938 198" fill="none" stroke="#2d3945" stroke-width="1.8" marker-end="url(#arr)"/>
+  <rect x="862" y="248" width="76" height="32" fill="#ffffff" stroke="#2d3945" stroke-width="1"/><text x="900" y="261" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.2" font-weight="700" fill="#1b232c">Proposal</text><text x="900" y="274" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.2" font-weight="700" fill="#1b232c">Delivery</text>
+  <line x1="1060" y1="262" x2="1060" y2="292" stroke="#2d3945" stroke-width="1.6" marker-end="url(#arr)"/>
+  <path d="M 1060 438 L 1060 470 L 414 470 L 414 440" fill="none" stroke="#2d3945" stroke-width="1.8" marker-end="url(#arr)"/>
+  <rect x="530" y="456" width="448" height="26" fill="#ffffff" stroke="#2d3945" stroke-width="1"/><text x="754" y="473" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="10.0" font-weight="700" fill="#1b232c">EvaluationReport (0.3 Parquet): (proposal_id, category, n_dis, n_r)</text>
+  <rect x="26" y="510" width="528" height="184" fill="#f7f9fb" stroke="#d2dae2" stroke-width="1.2"/>
+  <text x="40" y="531" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="11.2" font-weight="700" fill="#1b232c">STATISTICAL &amp; TAIL DIAGNOSTICS (diagnostics.py)</text>
+  <text x="40" y="554" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#1b232c"><tspan font-weight="700">Kish ESS &amp; PSIS k̂:</tspan> <tspan fill="#556270">weight degeneracy &amp; tail reliability (Vehtari et al. 2024)</tspan></text>
+  <text x="40" y="577" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#1b232c"><tspan font-weight="700">k-NN Coverage &amp; Mass:</tspan> <tspan fill="#556270">tail support vs held-out real muons (Naeem et al. 2020)</tspan></text>
+  <text x="40" y="600" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#1b232c"><tspan font-weight="700">Sliced W₁ &amp; 2-Sample:</tspan> <tspan fill="#556270">5D error vs d(x) &amp; real-vs-real floor (Bonneel et al. 2015)</tspan></text>
+  <text x="40" y="623" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#1b232c"><tspan font-weight="700">Defensive Mixture (R4):</tspan> <tspan fill="#556270">q = ε·p₀ + (1−ε)·q_tilted, w ≤ 1/ε (Hesterberg 1995)</tspan></text>
+  <text x="40" y="646" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.4" fill="#1b232c"><tspan font-weight="700">Self-Consumption (R3):</tspan> <tspan fill="#556270">real P₀ anchor mitigates collapse (Alemohammad et al. 2024)</tspan></text>
+  <text x="40" y="678" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.5" fill="#b04b0e">NOT YET MEASURED: useful candidates per CPU-hour vs unguided FairShip baseline.</text>
+  <rect x="570" y="510" width="624" height="184" fill="#f7f9fb" stroke="#d2dae2" stroke-width="1.2"/>
+  <text x="584" y="531" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="11.2" font-weight="700" fill="#1b232c">THE 7-STAGE CUT LADDER (climb one rung at a time)</text>
+  <text x="584" y="548" font-family="'DejaVu Sans', 'Liberation Sans', Helvetica, Arial, sans-serif" font-size="10.3" fill="#556270">U_k fitted on rung k guides proposals toward rung k+1 (zero final-selection positives in current P2 pool)</text>
+  <rect x="584" y="630" width="83" height="36" fill="#0d3659" stroke="#ffffff" stroke-width="0.8"/>
+  <text x="590" y="643" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#ffffff">1. Eligible</text>
+  <text x="590" y="655" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#d5e7f5">DIS</text>
+  <rect x="669" y="619" width="83" height="47" fill="#18507d" stroke="#b04b0e" stroke-width="2.0"/>
+  <text x="675" y="632" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#ffffff">2. ≥1 good</text>
+  <text x="675" y="644" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#d5e7f5">track</text>
+  <rect x="671" y="603" width="79" height="14" fill="#b04b0e"/>
+  <text x="710.5" y="613" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="8.4" font-weight="700" fill="#ffffff">r_demo_v0</text>
+  <rect x="754" y="608" width="83" height="58" fill="#2a6ea3" stroke="#ffffff" stroke-width="0.8"/>
+  <text x="760" y="621" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#ffffff">3. 2-track</text>
+  <text x="760" y="633" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#e5f2fc">vertex</text>
+  <rect x="839" y="597" width="83" height="69" fill="#468bc0" stroke="#ffffff" stroke-width="0.8"/>
+  <text x="845" y="610" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#ffffff">4. Exact 1</text>
+  <text x="845" y="622" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#eef6fc">cand.</text>
+  <rect x="924" y="586" width="83" height="80" fill="#6aa8d6" stroke="#ffffff" stroke-width="0.8"/>
+  <text x="930" y="599" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#13293d">5. Vertex</text>
+  <text x="930" y="611" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#1e3a52">geom/IP</text>
+  <rect x="1009" y="575" width="83" height="91" fill="#94c5e6" stroke="#ffffff" stroke-width="0.8"/>
+  <text x="1015" y="588" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#13293d">6. Daught.</text>
+  <text x="1015" y="600" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#27455e">qual/p</text>
+  <rect x="1094" y="564" width="83" height="102" fill="#c7e3f5" stroke="#ffffff" stroke-width="0.8"/>
+  <text x="1100" y="577" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" font-weight="700" fill="#13293d">7. Veto</text>
+  <text x="1100" y="589" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.0" fill="#2c4c66">UBT/SBT*</text>
+  <text x="1135.5" y="606" text-anchor="middle" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="8.3" font-weight="700" fill="#b04b0e">NA (P2)</text>
+  <text x="584" y="684" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.2" fill="#556270">* Model states carry no upstream/companion hits at P2 (P2_ONLY_DIAGNOSTIC; OPEN-INC-01).</text>
+  <line x1="10" y1="692" x2="1210" y2="692" stroke="#d2dae2" stroke-width="1"/>
+  <text x="26" y="705" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.3" fill="#556270">ship-nf · PhD thesis codebase (SHiP / ECN3 muon-DIS background)</text>
+  <text x="1194" y="705" text-anchor="end" font-family="'DejaVu Sans Mono', 'Liberation Mono', Consolas, monospace" font-size="9.3" fill="#556270">contract/ship_exchange_v0.md</text>
+</svg>
