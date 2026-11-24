@@ -55,6 +55,8 @@ from ship_nf.tail_demo import load, px_of
 DATA = Path(os.environ.get("SHIP_NF_AFTERMS", "/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz"))
 RULES = ("greedy", "greedy_mix", "thompson", "thompson_mix")  # "sample" and "mixture" dropped after run 1, see docs
 EPS, M, N_REAL, N_TRAIN, N_CAND = 0.2, 20, 20, 512, 2000
+P_MAX = 400.0  # GeV/c, R1: primary proton momentum, FairShip 8a1cc53 shipgen/FixedTargetGenerator.cxx:71
+GROWS = ("none", "k1", "jeffreys")  # which evaluated states join the pool, see grow_mask
 DECOY, GOAL, ZP_MAX = (1.5, 2.0), 2.5, 10.0  # real afterMS mu- tail: zp max 9.66
 P1 = {"decoy": 0.5, "goal": 0.3, "rest": 0.02, "outside": 0.0}
 P2 = {"decoy": 0.0, "goal": 0.5, "rest": 0.05, "outside": 0.0}
@@ -81,29 +83,58 @@ def laplace_cov(evaluated: list[dict], beta: np.ndarray, center: np.ndarray, sca
 
 
 def fit_sample(rows: np.ndarray, weights: np.ndarray | None, rng: np.random.Generator, seed: int) -> np.ndarray:
-    """Resample ``rows`` with ``weights`` (+ loop.JITTER), fit a flow, return physical candidates (p >= P_MIN)."""
+    """Resample ``rows`` with ``weights`` (+ loop.JITTER), fit a flow, return candidates with P_MIN <= p <= P_MAX (R1)."""
     scale = rows.std(0)
     idx = rng.choice(len(rows), N_TRAIN, p=weights)
     model, _ = flow.fit(rows[idx] + rng.normal(0, loop.JITTER, (N_TRAIN, rows.shape[1])) * scale, seed)
     c = model.sample(N_CAND, seed)
-    return c[np.isfinite(c).all(1) & (c[:, 4] >= np.log(loop.P_MIN))]
+    return c[np.isfinite(c).all(1) & (c[:, 4] >= np.log(loop.P_MIN)) & (c[:, 4] <= np.log(P_MAX))]
 
 
-def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
-    """One loop run; returns per-iteration counts by region and stage."""
+def grow_mask(k1: np.ndarray, base: float, mode: str) -> np.ndarray:
+    """R3 growth rule. ``k1``: stage-1 passes out of N_REAL per picked state; ``base``: pooled stage-1 rate so far.
+
+    ``k1``: grow on any pass. ``jeffreys``: grow only if the 16 % Jeffreys bound of k/N is above ``base`` (one pass
+    out of 20 in a region at the base rate is then not enough).
+    """
+    from scipy.stats import beta as B
+
+    if mode == "none":
+        return np.zeros(len(k1), bool)
+    if mode == "k1":
+        return k1 > 0
+    return B.ppf(0.16, k1 + 0.5, N_REAL - k1 + 0.5) > base
+
+
+def trajectory(rule: str, grow: str, seed: int, iters: int, anchor: float | None = None, n0: int | None = None) -> dict:
+    """One loop run; returns per-iteration counts by region and stage.
+
+    ``anchor``: cap on the share of the tilted resampling mass carried by grown rows (R3); None = no cap. P0 rows
+    are never removed. Grown rows are kept apart from P0 (``grown``) so their share and lineage stay explicit.
+    ``n0``: P0 = a random subset of that many training rows (fixed per seed); the real P2 problem has 19 rows.
+    """
     torch.set_num_threads(1)
     d = load(DATA, 1)
     zp_of = lambda f: (px_of(f) - d["median"]) / d["sigma"]  # noqa: E731
-    pool = p0 = d["f"][d["lab"] == "train"]
-    center, scale = pool.mean(0), pool.std(0)  # fixed standardisation for U, as loop.propose uses P0's
+    p0 = d["f"][d["lab"] == "train"]
+    if n0:
+        p0 = p0[np.random.default_rng(10_000 + seed).choice(len(p0), n0, replace=False)]
+    grown = np.empty((0, p0.shape[1]))
+    center, scale = p0.mean(0), p0.std(0)  # fixed standardisation for U, as loop.propose uses P0's
     rng = np.random.default_rng(seed)
     evaluated, out, untilted = [], [], None
     for it in range(iters):
         s0 = seed * 1000 + it
         beta = loop.fit_u(evaluated, center, scale)
+        pool = np.vstack([p0, grown])
         u_pool = loop.utility(pool, beta, center, scale)
         pi = loop.h(u_pool / u_pool.max(), 2.0, 0.1)
-        cand = fit_sample(pool, pi / pi.sum(), rng, s0)
+        pi /= pi.sum()
+        g_mass = pi[len(p0):].sum()
+        if anchor is not None and g_mass > anchor:  # R3: grown rows carry at most `anchor` of the mass
+            pi[len(p0):] *= anchor / g_mass
+            pi[:len(p0)] *= (1 - anchor) / (1 - g_mass)
+        cand = fit_sample(pool, pi, rng, s0)
         mix = rule.endswith("_mix")
         if mix and untilted is None:  # always P0, never the grown pool (run 2 refit it on the grown pool)
             untilted = fit_sample(p0, None, rng, s0 + 500)
@@ -128,13 +159,18 @@ def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
         k1 = rng.binomial(N_REAL, [P1[r] for r in reg])
         k2 = rng.binomial(k1, [P2[r] for r in reg])
         evaluated += [{**state(f), "counts": {"PLANTED": (N_REAL, int(a))}} for f, a in zip(pick, k1)]
-        if grow and (k1 > 0).any():
-            pool = np.vstack([pool, pick[k1 > 0]])
+        base = sum(r["counts"]["PLANTED"][1] for r in evaluated) / (N_REAL * len(evaluated))
+        add = grow_mask(k1, base, grow)
+        near = (np.linalg.norm((pick[:, None] - grown[None]) / scale, axis=-1).min(1) < 2 * loop.JITTER).mean() if len(grown) else 0.0
+        grown = np.vstack([grown, pick[add]])
         out.append({"iter": it, "n_goal": int((reg == "goal").sum()), "n_decoy": int((reg == "decoy").sum()),
                     "n_outside": int((reg == "outside").sum()),
                     "n_untilted": n_mix, "k1": int(k1.sum()), "k2": int(k2.sum()),
-                    "k2_goal": int(k2[reg == "goal"].sum()), "zp_max": float(zp_of(pick).max()), "pool": len(pool)})
-    return {"rule": rule, "grow": grow, "seed": seed, "iters": out}
+                    "k2_goal": int(k2[reg == "goal"].sum()), "zp_max": float(zp_of(pick).max()),
+                    "added": int(add.sum()), "added_rest": int((add & (reg == "rest")).sum()),
+                    "grown": len(grown), "grown_mass": float(min(g_mass, anchor) if anchor is not None else g_mass),
+                    "near_dup": float(near)})
+    return {"rule": rule, "grow": grow, "anchor": anchor, "n0": n0, "seed": seed, "iters": out}
 
 
 def summarize(path: Path, last: int = 5) -> list[dict]:
@@ -150,19 +186,22 @@ def summarize(path: Path, last: int = 5) -> list[dict]:
     jeff = lambda k, n: [round(k / n, 4), *(round(float(v), 4) for v in B.ppf([0.16, 0.84], k + 0.5, n - k + 0.5))]  # noqa: E731
     runs = json.loads(Path(path).read_text())["runs"]
     out = []
-    for rule in RULES:
-        for grow in (False, True):
-            rs = [r for r in runs if r["rule"] == rule and r["grow"] == grow]
-            tail = [i for r in rs for i in r["iters"][-last:]]
-            n_last, n_all = M * len(tail), M * N_REAL * sum(len(r["iters"]) for r in rs)
-            out.append({"rule": rule, "grow": grow, "seeds": len(rs),
-                        "first_goal": [next((i["iter"] for i in r["iters"] if i["n_goal"]), None) for r in rs],
-                        "goal_frac_last": jeff(sum(i["n_goal"] for i in tail), n_last),
-                        "decoy_frac_last": jeff(sum(i["n_decoy"] for i in tail), n_last),
-                        "outside_frac_last": jeff(sum(i.get("n_outside", 0) for i in tail), n_last),
-                        "goal_frac_last_per_seed": [round(sum(i["n_goal"] for i in r["iters"][-last:]) / (M * last), 2) for r in rs],
-                        "k2_per_real": jeff(sum(i["k2"] for r in rs for i in r["iters"]), n_all),
-                        "k2_goal": sum(i["k2_goal"] for r in rs for i in r["iters"])})
+    for key in sorted({(r["rule"], str(r["grow"]), str(r.get("anchor")), str(r.get("n0"))) for r in runs}):
+        rs = sorted([r for r in runs if (r["rule"], str(r["grow"]), str(r.get("anchor")), str(r.get("n0"))) == key], key=lambda r: r["seed"])
+        tail = [i for r in rs for i in r["iters"][-last:]]
+        n_last, n_all = M * len(tail), M * N_REAL * sum(len(r["iters"]) for r in rs)
+        out.append({"rule": key[0], "grow": key[1], "anchor": key[2], "n0": key[3], "seeds": len(rs),
+                    "first_goal": [next((i["iter"] for i in r["iters"] if i["n_goal"]), None) for r in rs],
+                    "goal_frac_last": jeff(sum(i["n_goal"] for i in tail), n_last),
+                    "decoy_frac_last": jeff(sum(i["n_decoy"] for i in tail), n_last),
+                    "outside_frac_last": jeff(sum(i.get("n_outside", 0) for i in tail), n_last),
+                    "goal_frac_last_per_seed": [round(sum(i["n_goal"] for i in r["iters"][-last:]) / (M * last), 2) for r in rs],
+                    "k2_per_real": jeff(sum(i["k2"] for r in rs for i in r["iters"]), n_all),
+                    "k2_goal": sum(i["k2_goal"] for r in rs for i in r["iters"]),
+                    "stuck_seeds": sum(1 for r in rs if not any(i["n_goal"] for i in r["iters"][-last:])),
+                    "added_rest_share": round(sum(i.get("added_rest", 0) for r in rs for i in r["iters"])
+                                              / max(1, sum(i.get("added", 0) for r in rs for i in r["iters"])), 3),
+                    "near_dup_last": round(float(np.mean([i.get("near_dup", 0) for i in tail])), 3)})
     return out
 
 
@@ -176,22 +215,36 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--iters", type=int, default=12)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--rules", nargs="+", default=list(RULES), choices=RULES)
+    ap.add_argument("--grow", nargs="+", default=list(GROWS), choices=GROWS)
+    ap.add_argument("--anchors", nargs="+", type=float, default=[None], help="R3 caps on the grown-row mass")
+    ap.add_argument("--arms", nargs="+", help="explicit rule:grow:anchor list, overrides --rules/--grow/--anchors")
+    ap.add_argument("--n0", nargs="+", type=lambda v: None if v == "all" else int(v), default=[None], help="P0 sizes, or all")
     ap.add_argument("--summarize", action="store_true", help="read OUT.json and print the summary instead of running")
     a = ap.parse_args()
     if a.summarize:
         for row in summarize(a.out):
             print(json.dumps(row))
         return
-    jobs = [(r, g, s, a.iters) for r in RULES for g in (False, True) for s in range(1, a.seeds + 1)]
+    if a.arms:  # explicit list "rule:grow:anchor", e.g. greedy_mix:k1:0.5 (anchor "-" = none)
+        arms = [(r, g, None if an == "-" else float(an)) for r, g, an in (x.split(":") for x in a.arms)]
+    else:
+        arms = [(r, g, an) for r in a.rules for g in a.grow for an in (a.anchors if g != "none" else [None])]
+    jobs = [(r, g, s, a.iters, an, n0) for n0 in a.n0 for r, g, an in arms for s in range(1, a.seeds + 1)]
     t0 = time.time()
-    with Pool(a.workers) as p:
-        runs = p.map(_run, jobs, chunksize=1)
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
                             cwd=Path(__file__).parent).stdout.strip()
     a.out.parent.mkdir(parents=True, exist_ok=True)
+    part = a.out.with_suffix(".partial.jsonl")  # one line per finished run: a crash loses nothing already done
+    runs = []
+    with Pool(a.workers) as p, part.open("a") as f:
+        for r in p.imap_unordered(_run, jobs):
+            runs.append(r)
+            f.write(json.dumps(r) + "\n")
+            f.flush()
     a.out.write_text(json.dumps({
         "commit": commit, "seconds": round(time.time() - t0), "data_sha256": hashlib.sha256(DATA.read_bytes()).hexdigest(),
-        "config": {"eps": EPS, "m": M, "n_real": N_REAL, "n_train": N_TRAIN, "n_cand": N_CAND, "decoy": DECOY,
+        "argv": os.sys.argv[1:], "config": {"eps": EPS, "m": M, "n_real": N_REAL, "n_train": N_TRAIN, "n_cand": N_CAND, "decoy": DECOY, "p_max": P_MAX,
                    "goal": GOAL, "zp_max": ZP_MAX, "p1": P1, "p2_given_1": P2, "tilt": {"alpha": 2.0, "delta": 0.1}, "iters": a.iters},
         "runs": runs}, indent=1))
     print(f"wrote {a.out} ({len(runs)} runs, {time.time() - t0:.0f} s)")
