@@ -84,14 +84,17 @@ def test_observed_keeps_counts_and_drops_ubt_and_unevaluated():
     assert n.tolist() == [40, 0] and y.tolist() == [11, 0]  # a proposal with no rows adds no trials
 
 
-def test_propose_saves_checkpoint_that_reproduces_log_q(tmp_path):
-    propose(FIX, [], tmp_path / "d", m=3, seed=3, n_train=64, n_cand=100)
+def test_propose_saves_checkpoints_that_reproduce_log_q(tmp_path):
+    propose(FIX, [], tmp_path / "d", m=5, seed=3, n_train=64, n_cand=100, eps=0.4)
     g = json.loads((tmp_path / "d" / "manifest.json").read_text())["generator"]
-    ck = tmp_path / "d" / g["checkpoint"]["file"]
-    assert hashlib.sha256(ck.read_bytes()).hexdigest() == g["checkpoint"]["sha256"]
-    model = flow.Flow(5)
-    model.load_state_dict(torch.load(ck))
+    assert g["roles"] == ["search"] * 3 + ["estimate"] * 2
     rows = pq.read_table(tmp_path / "d" / "proposals.parquet").to_pylist()
-    with torch.no_grad():
-        lq = model.log_prob(torch.as_tensor(features(rows), dtype=torch.float32)).numpy()
-    assert np.allclose(lq, g["log_q_flow"], atol=1e-3)
+    for role, ck in g["checkpoints"].items():
+        path = tmp_path / "d" / ck["file"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == ck["sha256"]
+        model = flow.Flow(5)
+        model.load_state_dict(torch.load(path))
+        idx = [i for i, r in enumerate(g["roles"]) if r == role]
+        with torch.no_grad():
+            lq = model.log_prob(torch.as_tensor(features([rows[i] for i in idx]), dtype=torch.float32)).numpy()
+        assert np.allclose(lq, [g["log_q_flow"][i] for i in idx], atol=1e-3)

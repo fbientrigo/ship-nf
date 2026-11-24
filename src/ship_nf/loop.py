@@ -125,7 +125,7 @@ def h(u: np.ndarray, alpha: float, delta: float) -> np.ndarray:
 
 
 def propose(problem_dir: Path, history: list[tuple[Path, Path]], out: Path, m: int, seed: int,
-            alpha: float = 2.0, delta: float = 0.1, n_train: int = 512, n_cand: int = 2000) -> dict:
+            alpha: float = 2.0, delta: float = 0.1, n_train: int = 512, n_cand: int = 2000, eps: float = 0.0) -> dict:
     """Write a ``MODEL_SAMPLE`` delivery of ``m`` new states to ``out`` and return a short summary.
 
     Parameters
@@ -138,6 +138,10 @@ def propose(problem_dir: Path, history: list[tuple[Path, Path]], out: Path, m: i
         States to send to FairShip.
     seed : int
         Seeds the resample, the flow and its samples; the same inputs give the same delivery.
+    eps : float
+        Share of the ``m`` slots used for estimation (R4): drawn at random from a flow fitted to the untilted training
+        rows, so their density is the flow's and is stored. The other slots are search: top U from the tilted flow,
+        no usable density. ``eps = 0`` (default) is the loop as before, with no second flow.
     """
     pm, rows = load_problem(problem_dir)
     plane = pm["state_definition"]["plane"]
@@ -151,43 +155,60 @@ def propose(problem_dir: Path, history: list[tuple[Path, Path]], out: Path, m: i
     pi = h(u_rows / u_rows.max(), alpha, delta)
     pi /= pi.sum()
     rng = np.random.default_rng(seed)
-    train = f_rows[rng.choice(len(rows), n_train, p=pi)] + rng.normal(0, JITTER, (n_train, len(FEATURES))) * scale
-    model, losses = flow.fit(train, seed)
 
-    cand = model.sample(n_cand, seed)
-    ok = (np.isfinite(cand).all(1) & (cand[:, 4] >= np.log(P_MIN))
-          & (np.abs(cand[:, 0] - cx) <= hx) & (np.abs(cand[:, 1] - cy) <= hy))
-    cand = cand[ok]
+    def draw(weights, s):  # fit a flow on a weighted, jittered resample; candidates on the plane with p >= P_MIN
+        train = f_rows[rng.choice(len(rows), n_train, p=weights)] + rng.normal(0, JITTER, (n_train, len(FEATURES))) * scale
+        model, losses = flow.fit(train, s)
+        c = model.sample(n_cand, s)
+        ok = (np.isfinite(c).all(1) & (c[:, 4] >= np.log(P_MIN)) & (np.abs(c[:, 0] - cx) <= hx) & (np.abs(c[:, 1] - cy) <= hy))
+        return model, losses, c[ok], float(ok.mean())
+
+    model, losses, cand, acc = draw(pi, seed)
+    n_est = int(round(eps * m))
     u_cand = utility(cand, beta, center, scale)
-    best = np.argsort(-u_cand, kind="stable")[:m]
-    nearest = np.argmin(np.linalg.norm(cand[best, None, :] / scale - f_rows[None] / scale, axis=-1), axis=1)
+    best = np.argsort(-u_cand, kind="stable")[:m - n_est]
+    picks, roles, models = [cand[i] for i in best], ["search"] * len(best), [model] * len(best)
+    if n_est:
+        model_e, _, cand_e, acc_e = draw(None, seed + 1)
+        picks += list(cand_e[rng.choice(len(cand_e), n_est, replace=False)])
+        roles += ["estimate"] * n_est
+        models += [model_e] * n_est
+    picks = np.array(picks)
+    nearest = np.argmin(np.linalg.norm(picks[:, None, :] / scale - f_rows[None] / scale, axis=-1), axis=1)
     t0 = float(np.median([r["t"] for r in rows]))
-    states = [to_state(cand[i], cz, t0, rows[j]["pdg"]) for i, j in zip(best, nearest)]
+    states = [to_state(f, cz, t0, rows[j]["pdg"]) for f, j in zip(picks, nearest)]
 
     progenitors = {r.get("progenitor_id") for r in rows}
     reports = [json.loads((Path(rep) / "manifest.json").read_text())["report_id"] for _, rep in history]
     config = {"problem_id": pm["problem_id"], "seed": seed, "alpha": alpha, "delta": delta, "u_model": "logistic_quad_v0",
-              "l2": L2, "n_train": n_train, "n_cand": n_cand, "jitter": JITTER, "reports": reports}
+              "l2": L2, "n_train": n_train, "n_cand": n_cand, "jitter": JITTER, "reports": reports, "eps": eps}
     generator = {"method": "realnvp_v0 (ship_nf.flow) on an h-tilted, jittered resample of training rows",
                  "model_id": hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:16],
                  "seed": seed, "n": len(states), "config": config, "features": list(FEATURES),
                  "pdg_rule": "pdg of the nearest training row", "t_rule": "median training t", "z_rule": "plane centre z",
                  "origin": "NF", "tilt_kish_ess": kish_ess(pi), "tilt_base": "equiprobable distinct training rows",
                  "rows": len(rows), "distinct_progenitors": len(progenitors), "evaluated_proposals": len(evaluated),
-                 "final_nll": losses[-1], "candidates_physical": int(ok.sum()),
-                 "u_selected": [float(u_cand[i]) for i in best]}
-    # Checkpoint + per-state log density, so q can be recomputed later. ``flow.sample(n_cand, seed)`` on this checkpoint
-    # regenerates every candidate. log_q_flow is the flow's density, NOT the density of the top-m selection.
+                 "final_nll": losses[-1], "candidates_physical": len(cand),
+                 "u_selected": [float(x) for x in utility(picks, beta, center, scale)]}
+    # Checkpoints + per-state log density under the flow that produced the state, so q can be recomputed later;
+    # flow.sample(n_cand, seed) on a checkpoint regenerates its candidates. Only "estimate" states were drawn from
+    # their flow (density = exp(log_q_flow) / acceptance); "search" states are a top-m choice and have no usable q.
     out.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), out / "flow.pt")
+    ck = {"search": model, **({"estimate": model_e} if n_est else {})}
+    for role, mdl in ck.items():
+        torch.save(mdl.state_dict(), out / f"flow_{role}.pt")
     with torch.no_grad():
-        log_q = model.log_prob(torch.as_tensor(cand[best], dtype=torch.float32)).tolist()
-    generator.update({"checkpoint": {"file": "flow.pt", "sha256": hashlib.sha256((out / "flow.pt").read_bytes()).hexdigest()},
-                      "selection": "top_m_by_U", "log_q_flow": log_q, "log_q_space": list(FEATURES)})
+        log_q = [float(mdl.log_prob(torch.as_tensor(f[None], dtype=torch.float32))[0]) for f, mdl in zip(picks, models)]
+    generator.update({"checkpoints": {r: {"file": f"flow_{r}.pt", "sha256": hashlib.sha256((out / f"flow_{r}.pt").read_bytes()).hexdigest()}
+                                      for r in ck},
+                      "roles": roles, "log_q_flow": log_q, "log_q_space": list(FEATURES),
+                      "acceptance": {"search": acc, **({"estimate": acc_e} if n_est else {})},
+                      "selection": {"search": "top_m_by_U", "estimate": "uniform draw among accepted candidates of the untilted flow"}})
     delivery_id = write_model_delivery(problem_dir, out, states, generator)
     return {"delivery_id": delivery_id, "states": len(states), "rows": len(rows), "distinct_progenitors": len(progenitors),
             "tilt_kish_ess": round(kish_ess(pi), 2),
-            "evaluated_proposals": len(evaluated), "candidates_physical": int(ok.sum()), "final_nll": round(losses[-1], 3)}
+            "evaluated_proposals": len(evaluated), "candidates_physical": len(cand), "final_nll": round(losses[-1], 3),
+            "estimate_slots": n_est}
 
 
 def propose_manual(problem_dir: Path, out: Path, x: float, y: float, px: float, py: float, pz: float, pdg: int) -> dict:

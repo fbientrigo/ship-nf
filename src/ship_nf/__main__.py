@@ -23,6 +23,7 @@ def main(argv=None) -> int:
     p.add_argument("--out", required=True, type=Path)
     p.add_argument("--history", nargs=2, action="append", default=[], type=Path, metavar=("DELIVERY", "REPORT"))
     p.add_argument("--m", type=int, default=5)
+    p.add_argument("--eps", type=float, default=0.0, help="share of slots drawn untilted for estimation (R4)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--alpha", type=float, default=2.0)
     p.add_argument("--delta", type=float, default=0.1)
@@ -71,7 +72,7 @@ def main(argv=None) -> int:
             out = propose_manual(a.problem, a.out, *a.state, a.pdg)
         elif a.cmd == "propose-nf":
             from ship_nf.loop import propose  # torch only when needed
-            out = propose(a.problem, a.history, a.out, a.m, a.seed, a.alpha, a.delta)
+            out = propose(a.problem, a.history, a.out, a.m, a.seed, a.alpha, a.delta, eps=a.eps)
         else:
             out = summary(*load_problem(a.problem)) if a.cmd == "inspect" else propose_resample(a.problem, a.out, a.n, a.seed, a.use)
     except ContractError as e:
