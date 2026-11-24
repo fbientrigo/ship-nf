@@ -14,7 +14,10 @@ answer is known and a run takes minutes instead of days. Everything else is the 
 Planted target, on the signed robust z of px (``zp``, same reference as the deck's ``|zpx|``):
 
 - DECOY ``1.5 <= zp <= 2`` (inside training): stage 1 often (p1 = 0.5), stage 2 never (p2|1 = 0).
-- GOAL ``zp > 2.5`` (held out, never in the pool at start): stage 1 less often (0.3), stage 2 half the time (0.5).
+- GOAL ``2.5 < zp <= 10`` (held out, never in the pool at start; the real tail ends at 9.66): stage 1 less often
+  (0.3), stage 2 half the time (0.5).
+- OUTSIDE ``zp > 10``: beyond any real muon, passes nothing. Run 1 had no upper edge and counted px of 1 000 sigma
+  as GOAL.
 - elsewhere: p1 = 0.02, p2|1 = 0.05.
 
 U is fitted on stage 1 only, as the real loop fits ``>= 1 good track``. Stage 2 plays "a later cut" (Oliver's
@@ -23,12 +26,11 @@ question); reaching GOAL plays "rediscovering the held-out tail" (Mathei's quest
 Rules for choosing the ``m`` states sent to the target each iteration:
 
 - ``greedy``: the m candidates with the highest U (``loop.propose`` today).
-- ``sample``: m candidates at random from the tilted flow (the tilt alone steers).
-- ``mixture``: like ``sample``, but each slot comes with probability EPS from a flow fitted to the untilted pool
+- ``greedy_mix``: ``greedy``, but each slot comes with probability EPS from a flow fitted to the untilted pool
   (defensive mixture).
 - ``thompson``: for each slot, draw coefficients from U's Laplace posterior ``N(beta, H^-1)`` and take the best unused
   candidate under that draw.
-- ``thompson_mix``: ``thompson`` with the EPS untilted slots of ``mixture``.
+- ``thompson_mix``: ``thompson`` with the EPS untilted slots of ``greedy_mix``.
 
 Run: ``python -m ship_nf.planted OUT.json [--seeds 5] [--iters 12] [--workers 8]``.
 """
@@ -50,15 +52,16 @@ from ship_nf import flow, loop
 from ship_nf.tail_demo import load, px_of
 
 DATA = Path("/home/fabian/thesis/ship_adaptive_muon_bg/data/samples/muonsFullMC_afterMS_sample.npz")
-RULES = ("greedy", "sample", "mixture", "thompson", "thompson_mix")
+RULES = ("greedy", "greedy_mix", "thompson", "thompson_mix")  # "sample" and "mixture" dropped after run 1, see docs
 EPS, M, N_REAL, N_TRAIN, N_CAND = 0.2, 20, 20, 512, 2000
-DECOY, GOAL = (1.5, 2.0), 2.5
-P1 = {"decoy": 0.5, "goal": 0.3, "rest": 0.02}
-P2 = {"decoy": 0.0, "goal": 0.5, "rest": 0.05}
+DECOY, GOAL, ZP_MAX = (1.5, 2.0), 2.5, 10.0  # real afterMS mu- tail: zp max 9.66
+P1 = {"decoy": 0.5, "goal": 0.3, "rest": 0.02, "outside": 0.0}
+P2 = {"decoy": 0.0, "goal": 0.5, "rest": 0.05, "outside": 0.0}
 
 
 def region(zp: np.ndarray) -> np.ndarray:
-    return np.where(zp > GOAL, "goal", np.where((zp >= DECOY[0]) & (zp <= DECOY[1]), "decoy", "rest"))
+    return np.where(zp > ZP_MAX, "outside", np.where(zp > GOAL, "goal",
+                    np.where((zp >= DECOY[0]) & (zp <= DECOY[1]), "decoy", "rest")))
 
 
 def state(f: np.ndarray) -> dict:
@@ -100,12 +103,12 @@ def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
         u_pool = loop.utility(pool, beta, center, scale)
         pi = loop.h(u_pool / u_pool.max(), 2.0, 0.1)
         cand = fit_sample(pool, pi / pi.sum(), rng, s0)
-        mix = rule in ("mixture", "thompson_mix")
+        mix = rule.endswith("_mix")
         if mix and (untilted is None or grow):
             untilted = fit_sample(pool, None, rng, s0 + 500)
         n_mix = int(rng.binomial(M, EPS)) if mix else 0
         k = M - n_mix
-        if rule == "greedy":
+        if rule.startswith("greedy"):
             pick = cand[np.argsort(-loop.utility(cand, beta, center, scale), kind="stable")[:k]]
         elif rule in ("thompson", "thompson_mix") and beta is not None:
             cov = laplace_cov(evaluated, beta, center, scale)
@@ -116,7 +119,7 @@ def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
                 free[j] = False
                 pick.append(cand[j])
             pick = np.array(pick)
-        else:  # sample, mixture, and Thompson before any data (U = 1 everywhere)
+        else:  # Thompson before any data (U = 1 everywhere): any candidate is as good
             pick = cand[rng.choice(len(cand), k, replace=False)]
         if n_mix:
             pick = np.vstack([pick, untilted[rng.choice(len(untilted), n_mix, replace=False)]])
@@ -127,9 +130,39 @@ def trajectory(rule: str, grow: bool, seed: int, iters: int) -> dict:
         if grow and (k1 > 0).any():
             pool = np.vstack([pool, pick[k1 > 0]])
         out.append({"iter": it, "n_goal": int((reg == "goal").sum()), "n_decoy": int((reg == "decoy").sum()),
+                    "n_outside": int((reg == "outside").sum()),
                     "n_untilted": n_mix, "k1": int(k1.sum()), "k2": int(k2.sum()),
                     "k2_goal": int(k2[reg == "goal"].sum()), "zp_max": float(zp_of(pick).max()), "pool": len(pool)})
     return {"rule": rule, "grow": grow, "seed": seed, "iters": out}
+
+
+def summarize(path: Path, last: int = 5) -> list[dict]:
+    """Per (rule, grow): the numbers the CM 39 questions ask for, with plain binomial uncertainty.
+
+    - ``first_goal``: iteration of the first proposal in GOAL, per seed (None = never, censored).
+    - ``goal_frac_last``: share of proposals in GOAL over the last ``last`` iterations, pooled over seeds, with a
+      Jeffreys 68 % interval ``Beta(k + 1/2, n - k + 1/2)``; same for ``decoy_frac_last``.
+    - ``k2_per_real``: stage-2 passes per evaluated realization over the whole run, pooled, Jeffreys 68 %.
+    """
+    from scipy.stats import beta as B
+
+    jeff = lambda k, n: [round(k / n, 4), *(round(float(v), 4) for v in B.ppf([0.16, 0.84], k + 0.5, n - k + 0.5))]  # noqa: E731
+    runs = json.loads(Path(path).read_text())["runs"]
+    out = []
+    for rule in RULES:
+        for grow in (False, True):
+            rs = [r for r in runs if r["rule"] == rule and r["grow"] == grow]
+            tail = [i for r in rs for i in r["iters"][-last:]]
+            n_last, n_all = M * len(tail), M * N_REAL * sum(len(r["iters"]) for r in rs)
+            out.append({"rule": rule, "grow": grow, "seeds": len(rs),
+                        "first_goal": [next((i["iter"] for i in r["iters"] if i["n_goal"]), None) for r in rs],
+                        "goal_frac_last": jeff(sum(i["n_goal"] for i in tail), n_last),
+                        "decoy_frac_last": jeff(sum(i["n_decoy"] for i in tail), n_last),
+                        "outside_frac_last": jeff(sum(i.get("n_outside", 0) for i in tail), n_last),
+                        "goal_frac_last_per_seed": [round(sum(i["n_goal"] for i in r["iters"][-last:]) / (M * last), 2) for r in rs],
+                        "k2_per_real": jeff(sum(i["k2"] for r in rs for i in r["iters"]), n_all),
+                        "k2_goal": sum(i["k2_goal"] for r in rs for i in r["iters"])})
+    return out
 
 
 def _run(args):
@@ -142,7 +175,12 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--iters", type=int, default=12)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--summarize", action="store_true", help="read OUT.json and print the summary instead of running")
     a = ap.parse_args()
+    if a.summarize:
+        for row in summarize(a.out):
+            print(json.dumps(row))
+        return
     jobs = [(r, g, s, a.iters) for r in RULES for g in (False, True) for s in range(1, a.seeds + 1)]
     t0 = time.time()
     with Pool(a.workers) as p:
@@ -153,7 +191,7 @@ def main() -> None:
     a.out.write_text(json.dumps({
         "commit": commit, "seconds": round(time.time() - t0), "data_sha256": hashlib.sha256(DATA.read_bytes()).hexdigest(),
         "config": {"eps": EPS, "m": M, "n_real": N_REAL, "n_train": N_TRAIN, "n_cand": N_CAND, "decoy": DECOY,
-                   "goal": GOAL, "p1": P1, "p2_given_1": P2, "tilt": {"alpha": 2.0, "delta": 0.1}, "iters": a.iters},
+                   "goal": GOAL, "zp_max": ZP_MAX, "p1": P1, "p2_given_1": P2, "tilt": {"alpha": 2.0, "delta": 0.1}, "iters": a.iters},
         "runs": runs}, indent=1))
     print(f"wrote {a.out} ({len(runs)} runs, {time.time() - t0:.0f} s)")
 
