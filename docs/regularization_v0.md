@@ -85,7 +85,7 @@ The planted runs showed it is required to reach a held-out region (without it, a
 Evidence for anchoring, from ship-nf `docs/density_studies.md:76-79`: five generations of training on own samples
 dropped tail coverage from 0.99 to 0.81-0.88; anchored to real rows it stayed at 0.95-0.98.
 
-How it can fail (none tested yet):
+How it can fail (tested in run 3, results in the next section):
 - **Spiky pool.** Grown rows are few (tens) and clustered. Giving them up to 50 % of the weight puts half the flow's
   mass on a handful of points; the flow then fits spikes and proposes near-duplicates. Measure: share of proposals
   within a small distance of a grown row.
@@ -97,6 +97,62 @@ How it can fail (none tested yet):
 - **Lineage.** Grown rows are proposals, not P0 muons. If they were ever counted as P0 in an estimate, the estimate
   would be biased. Each grown row must carry its origin (`GROWN`, iteration, proposal id) and the estimate code must
   refuse them.
+
+## R3 results: planted run 3 (2026-11-24)
+
+Data trace: `~/thesis/scratch/planted_v0/run3_r3.json` (210 runs, 6422 s, 5 workers, commit and argv inside the
+file). 7 arms × P0 size n0 ∈ {all = 15 806, 200, 19} × 10 seeds × 20 iterations, 20 states per iteration, 20
+realizations per state. Untilted flow always fitted on P0 (fix `5a2042d`). Rate = stage-2 passes per
+(state × realization) over the last 5 iterations, mean ± sd across seeds (sd across seeds is the honest error; the
+pooled Jeffreys interval is 10× narrower). Stuck = seed with no GOAL proposal in the last 5 iterations (`planted.py:201`).
+
+| arm (rule:grow:anchor) | n0 | rate mean ± sd | stuck | GOAL share | luck share | near-dup |
+|---|---|---|---|---|---|---|
+| greedy_mix:none | all | 0.028 ± 0.019 | 0 | 0.18 | 0 | 0 |
+| greedy:k1 | all | 0.087 ± 0.065 | 3 | 0.58 | 0.31 | 0.11 |
+| greedy_mix:k1 | all | 0.106 ± 0.024 | 0 | 0.67 | 0.26 | 0.04 |
+| greedy_mix:jeffreys | all | 0.092 ± 0.019 | 0 | 0.62 | 0.05 | 0.03 |
+| thompson_mix:k1:0.5 | all | 0.086 ± 0.017 | 0 | 0.56 | 0.31 | 0.02 |
+| greedy_mix:none | 200 | 0.024 ± 0.034 | 0 | 0.15 | 0 | 0 |
+| greedy:k1 | 200 | 0.113 ± 0.060 | 2 | 0.76 | 0.16 | 0.38 |
+| greedy_mix:k1 | 200 | 0.104 ± 0.016 | 0 | 0.69 | 0.25 | 0.10 |
+| greedy_mix:jeffreys | 200 | 0.113 ± 0.009 | 0 | 0.75 | 0.06 | 0.10 |
+| thompson_mix:k1:0.5 | 200 | 0.086 ± 0.034 | 1 | 0.56 | 0.23 | 0.00 |
+| greedy_mix:none | 19 | 0.016 ± 0.032 | 6 | 0.11 | 0 | 0 |
+| greedy:k1 | 19 | 0.072 ± 0.076 | 5 | 0.48 | 0.25 | 0.38 |
+| greedy_mix:k1 | 19 | 0.062 ± 0.054 | 2 | 0.42 | 0.36 | 0.18 |
+| greedy_mix:jeffreys | 19 | 0.048 ± 0.057 | 5 | 0.32 | 0.16 | 0.21 |
+| thompson_mix:k1:0.5 | 19 | 0.111 ± 0.014 | 0 | 0.71 | 0.18 | 0.01 |
+
+Luck share = fraction of grown rows from the REST region (true cut-1 rate 0.02), i.e. growth from fluctuations
+(`planted.py:170`). Near-dup = share of proposals within 2 × jitter (0.1 σ) of a grown row, last 5 iterations
+(`planted.py:163`).
+
+VERIFIED (from the table):
+- **GROW is the main effect.** Without it the rate is 3-4× lower at every n0.
+- **Greedy gets stuck (Oliver).** 2-5 of 10 seeds stuck at every n0. The ε mix removes it at n0 ≥ 200, not at
+  n0 = 19 (2-6 stuck). Two kinds of stuck seed (33 stuck runs, listed per seed from the JSON): 16 never leave the
+  centre (largest zp in the last 5 iterations < 1.5; all greedy at n0 ≥ 200 are this kind) and 17 left it; 14 of
+  those put > 50 % of proposals in DECOY, all at n0 = 19. DECOY is Oliver's case: it passes cut 1 and makes cut 2
+  impossible. One Thompson seed at n0 = 200 split between DECOY (48 %) and OUTSIDE (zp up to 26).
+- **Jeffreys growth threshold cuts luck growth 5×** (0.25 → 0.05) at n0 ≥ 200, with rate equal at 200 and 13 % lower
+  at all. At n0 = 19 it is worse (5 stuck): with few pooled passes the bound rarely clears the base rate, so growth
+  stalls.
+- **Anchor 0.5 never binds at n0 = all** (grown mass max 0.26-0.35; results identical with and without). At 200 and 19
+  it binds and changes little (rate within one sd). It does not help.
+- **Spiky pool** is real for greedy (near-dup 0.38) and small for the mixes (≤ 0.10, Thompson ≤ 0.01).
+- **Thompson side test.** Only arm with 0 stuck and the best rate at n0 = 19, where the U posterior is wide. At
+  n0 ≥ 200 it is 15-20 % below greedy_mix and once stuck at 200. Seen once per n0 with 10 seeds.
+
+INFERENCE: n0 = 19 is the regime of the real loop today (19 P2 rows). There, the posterior width is what keeps
+search alive, and Thompson uses it directly. With hundreds of P0 rows the plain ε mix is enough.
+
+PROVISIONAL recommendation (to discuss): `greedy_mix` + GROW k1 as default; drop the anchor (no measurable benefit,
+one parameter less); keep the Jeffreys threshold out until the pool is ≥ 200 rows; rerun Thompson vs greedy_mix at
+n0 = 19 with 30 seeds before deciding, because that is the only cell where Thompson wins and the real loop sits there.
+
+OPEN: the planted target is one geometry (one decoy, one goal along px). A decoy in another direction, or two goals,
+may change the ranking.
 
 ## R4. ε untilted proposals
 
