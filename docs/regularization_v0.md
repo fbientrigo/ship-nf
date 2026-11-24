@@ -12,29 +12,50 @@ Data for the measurements: afterMS mu- (`tail_demo.load`, 15 806 training rows `
 
 | rule | as first proposed | verdict | revised |
 |---|---|---|---|
-| R1 physical support | p <= max p of P0 (x 1.2) | **wrong**: cuts 18.6 % (10.3 % with x 1.2) of the real afterMS tail | physics only: p <= 400 GeV/c, the beam momentum |
+| R1 physical support | p <= max p of P0 (x 1.2) | **wrong**: cuts 18.6 % (10.3 % with x 1.2) of the real afterMS tail | only limits FairShip defines: P2 plane x, y (already applied), 2 <= p <= 400 GeV/c; sources in the R1 section |
 | R2 trust region | kNN-5 distance to the pool <= 0.69 | **metric error**: 0.69 was slide 8's robust units; in the loop's units the validation p95 is 0.48. Idea sound, threshold must be measured in the loop's own metric | keep, threshold = p95 of held-out distances in the loop's metric; on P2 OPEN (19 rows) |
 | R3 anchored GROW | P0 always in the pool, grown rows <= 50 % of the weight | plausible; three failure modes untested | test in the planted harness before use |
-| R4 ε untilted | 20 % of proposals from the untilted flow, so `w <= 1/ε` | the bound **does not hold** with top-m selection, and the harness's "untilted" flow was not P0's | keep for search; do not use it to claim bounded weights |
+| R4 ε untilted | 20 % of proposals from the untilted flow, so `w <= 1/ε` | the bound **does not hold** with top-m selection, and the harness's "untilted" flow was not P0's | split search and estimate slots: done, `79b23ef`, `eps = 0` by default |
 
-## R1. Physical support
+## R1. Physical support: what FairShip itself defines
 
-MEASURED (afterMS): training max p = 111.4 GeV/c, tail max p = 300.6 GeV/c. A cap at the training max removes 18.6 %
-of the real tail rows; at 1.2 x the training max, 10.3 %. On P2 the 19 rows reach only 59.4 GeV/c. A cap taken from
-data removes the region the loop is meant to find, so it is the wrong kind of rule.
+Searched in FairShip 8a1cc53 (`worktrees/FairShip-main-8a1cc53`) for limits on a muon state at P2. Only code is
+cited; no SHiP document was found in the repository that defines an acceptance at P2, so none is claimed.
 
-MEASURED: slopes do not need a cap. Training `|tx|` reaches 3.53 and `|ty|` 1.30; the tail stays inside (0.32, 0.18).
+| quantity | limit | where it comes from (VERIFIED in code) | kind |
+|---|---|---|---|
+| x at P2 | within ±456.6 cm (`ms.X = 2 * ECN3WallDistance` = 9.132 m, centred at 0) | `python/geometry_config.py:112-123`, plane 2 "ShieldGap downstream of the muon shield" | geometry: the plane ends at the ECN3 walls |
+| y at P2 | from the ECN3 floor (-336.4 cm) to `Top` = 520 cm (8.564 m, centred at 91.8 cm) | same lines | geometry |
+| z of P2 | `muShield.z + muShield.length + 10 cm` | same lines | geometry |
+| species | muons only on plane 2 (`ms.MuonsOnly = True`) | same lines | geometry |
+| p, lower | 2 GeV/c: MuDIS skips the muon below it (`fMinPythiaP = 2`) | `newMuonDIS/MuDISProcessor.cxx:45,282,458` | simulation support, not physics |
+| p, upper | 400 GeV/c, the primary proton momentum (`fMom = 400`) | `shipgen/FixedTargetGenerator.cxx:71` | kinematics: a secondary muon cannot carry more than the beam |
+| p, upper (other place) | trajectories stored only for E in [0, 400] GeV | `macro/run_simScript.py:1117` (`trajFilter.SetEnergyCut`) | storage filter of run_simScript; consistent with the beam, not a separate source |
+| direction | none found | - | OPEN: no angular acceptance at P2 in the code |
 
-Revised R1, physics only: `p <= 400 GeV/c`. VERIFIED: the primary proton momentum is 400 GeV/c
-(FairShip 8a1cc53 `shipgen/FixedTargetGenerator.cxx:71`, `fMom = 400`); no muon from it can carry more.
+The loop already enforces the plane's x, y and the 2 GeV/c floor (`loop.py`, `draw`). The 400 GeV/c ceiling is the
+only new constraint, and it is kinematics from FairShip's own generator setting, not a number chosen by us.
 
-How it can still fail:
-- It is loose: px of 100 GeV/c passes R1 although no real muon has it. R1 stops impossible states, not implausible
-  ones; R2 has to do the rest.
-- Units: features hold `log p` in GeV/c. A unit slip (MeV) would pass or reject everything silently. One assert in
-  the test on a known row.
+MEASURED, why a cap taken from data is wrong: afterMS training max p = 111.4 GeV/c, tail max p = 300.6 GeV/c; a cap at
+the training max removes 18.6 % of the real tail (10.3 % at 1.2 x). On P2 the 19 rows reach only 59.4 GeV/c.
+Slopes need no cap: training `|tx|` reaches 3.53 and `|ty|` 1.30, the tail stays within 0.32 and 0.18.
+
+How R1 can still fail:
+- It is loose: px of 100 GeV/c passes R1 although no real muon has it. R1 removes impossible states, not implausible
+  ones; that is R2's job.
+- Units: features hold `log p` in GeV/c. A unit slip (MeV) would pass or reject everything silently; a test on a
+  known row guards it.
+- The 400 GeV/c holds for the current beam setting. If `FixedTargetGenerator` changes `fMom`, R1 must follow; read it
+  from the same place, do not copy the number elsewhere.
 
 ## R2. Trust region (distance to known data)
+
+In one paragraph: slide 8 showed that the flow's error grows with the distance from a state to the nearest training
+muons; close to the data the flow is about 3x the noise floor, far away 12x. R2 says: do not send FairShip a state
+that is farther from known data than the flow has been checked to be reliable. "Known data" grows as the loop runs
+(GROW), so the allowed region grows too, one step at a time. The problem it solves: without it, the flow invents states
+far outside anything it has seen (run 1: px of thousands of GeV), FairShip spends time on them, and nothing in the
+loop notices. The problem it can create: if nothing passes near the edge, the edge never moves (below).
 
 MEASURED (afterMS, kNN-5 on features standardised by the training std, `extrapolation.knn_distance`): validation p95
 = 0.48; real tail rows have median distance 0.49 and p95 1.55; 50 % of them lie within 0.48. So at the start R2
@@ -97,14 +118,15 @@ GROW, anything; it needs no weights. **Estimation** (a background rate) uses onl
 recorded density, for example the ε slots drawn from the untilted P0 flow, each with its `log q`. The ε slots then do
 two things at once: keep search from sticking, and form an unbiased (relative to the P0 model) sample.
 
-## Cross-cutting finding: P0 weights are dropped
+## Correction: P0 weights are stored, and ignored on purpose
 
-VERIFIED: stage 1 ran with `--kaon-pion-splits 10` (`scratch/gen-from-scratch-v0/launch_stage1_v2.sh`), and the
-lossless P2 note lists clone weights of 0.1 for some of the 19 rows (`worktrees/ship-p2-extraction-v0/notes/
-p2_lossless_v0.md`). MEASURED: the TrainingProblem has no weight values (all NaN), and `loop.propose` treats every row
-as one muon (`tilt_base: equiprobable distinct training rows`). So a clone of weight 0.1 counts as much as an unsplit
-muon. This does not break search, but any statement about P0 (and the "untilted" flow) inherits it. OPEN, and the
-nightly job must store weights from the start.
+An earlier version of this note said the weights were lost. That was my error: I read a column `weight`, which does
+not exist. VERIFIED: the TrainingProblem stores `stored_mctrack_weight` per row (2 rows at 1.0, 17 split clones at
+0.1, sum 3.7), declared with `semantics_id: OPEN:stored-mctrack-weight-v0` and `usable_as_nominal_measure: false`
+(ship-fs-pipeline `src/ship_fs_pipeline/exchange.py:28,144-145`). `loop.propose` tilts over equiprobable rows by that
+decision (DEC-WEIGHT-02), not by accident. Whether the clone weight (0.1 = 1/K, K = `--kaon-pion-splits 10`) should
+become the base measure of P0 is a scientific decision for the user. The nightly job uses the same extraction, so
+its rows carry the same column.
 
 ## What to check
 
@@ -118,3 +140,18 @@ nightly job must store weights from the start.
 2. Fix the harness so "untilted" is always fitted on P0 rows; rerun `greedy_mix` with GROW.
 3. Planted A/B for R2 + R3 (anchor share, Jeffreys growth threshold), logging the R2 rejection share and pool size.
 4. Only then move R2 to R4 into `loop.propose`.
+
+## Harness errors found and fixed (planted.py)
+
+| # | error | effect | fix |
+|---|---|---|---|
+| 1 | GOAL had no upper edge | run 1 counted px of 1 000 sigma as success; run 1 invalid | `92e85be`: GOAL <= zp 10, OUTSIDE passes nothing |
+| 2 | "mixture" changed two things at once (random choice and ε) | could not test the simple rule | `92e85be`: `greedy_mix` |
+| 3 | the "untilted" flow was refitted on the grown pool | run 2 `greedy_mix` + GROW was not "ε from P0" | `5a2042d` |
+| 4 | no momentum ceiling on candidates | absurd states reached the target | `917d496`: R1, p <= 400 GeV/c |
+| 5 | results written only at the end | a crash after hours would lose everything | `917d496`: one JSON line per finished run |
+| 6 | grown rows mixed into the P0 array | no way to cap or audit their share | `917d496`: kept apart, share logged |
+| 7 | P0 was always the full 15 806 rows | grown rows then carry < 0.5 % of the mass; R3's anchor never binds, unlike P2 (19 rows) | `917d496`: `--n0` |
+
+Known limits, not bugs: U is quadratic in the features, so it cannot isolate the thin DECOY slab; pooled Jeffreys
+intervals are much narrower than the spread between seeds, so seed spread is what results report.
