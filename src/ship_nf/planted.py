@@ -236,7 +236,9 @@ def main() -> None:
                             cwd=Path(__file__).parent).stdout.strip()
     a.out.parent.mkdir(parents=True, exist_ok=True)
     part = a.out.with_suffix(".partial.jsonl")  # one line per finished run: a crash loses nothing already done
-    runs = []
+    runs = [json.loads(line) for line in part.open()] if part.exists() else []  # resume: keep finished runs
+    done = {(r["rule"], r["grow"], r["seed"], r.get("anchor"), r.get("n0")) for r in runs}
+    jobs = [j for j in jobs if (j[0], j[1], j[2], j[4], j[5]) not in done]
     with Pool(a.workers) as p, part.open("a") as f:
         for r in p.imap_unordered(_run, jobs):
             runs.append(r)
